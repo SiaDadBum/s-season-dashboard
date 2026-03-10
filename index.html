@@ -14,20 +14,14 @@
 </head>
 <body>
   <div id="root"></div>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script>
-    // 라이브러리 로드 완료 후 앱 실행
-    window.addEventListener("load", function() {
-      var script = document.createElement("script");
-      script.type = "text/babel";
-      script.setAttribute("data-presets", "react");
-      script.text = `
-        const { useState, useMemo } = React;
-        const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-          Tooltip, Legend, ResponsiveContainer, ReferenceLine, ComposedChart } = Recharts;
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo } = React;
+    const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+      Tooltip, Legend, ResponsiveContainer, ReferenceLine, ComposedChart } = Recharts;
 
 
 // ══════════════════════════════════════════════════════
@@ -181,15 +175,15 @@ const GAP24_TOTAL = 22660000;  // 24S GAP 예측판매
 // ══════════════════════════════════════════════════════
 // 유틸
 // ══════════════════════════════════════════════════════
-const 억  = n => \`${(n/1e8).toFixed(1)}억\`;
-const 억2 = n => \`${(n/1e8).toFixed(2)}억\`;
-const pct = (s,o) => o>0?\`${(s/o*100).toFixed(1)}%\`:'-';
+const 억  = n => `${(n/1e8).toFixed(1)}억`;
+const 억2 = n => `${(n/1e8).toFixed(2)}억`;
+const pct = (s,o) => o>0?`${(s/o*100).toFixed(1)}%`:'-';
 const pctN= (s,o) => o>0?s/o*100:0;
 // KPI compare 헬퍼 — 부호 +/△, 색상 단일화
 const cmp = (val, base, color, label) => ({
   color,
   arrow: val>=base ? '+' : '△',
-  text: \`${label} ${억(base)} 대비 ${val>=base?'+':''}${((val/base-1)*100).toFixed(1)}%\`
+  text: `${label} ${억(base)} 대비 ${val>=base?'+':''}${((val/base-1)*100).toFixed(1)}%`
 });
 
 const C = {
@@ -206,7 +200,7 @@ const C = {
 const Tip = ({active,payload,label}) => {
   if(!active||!payload?.length) return null;
   return (
-    <div style={{background:'#0a1020',border:\`1px solid ${C.border}\`,borderRadius:8,padding:'10px 14px',fontSize:12}}>
+    <div style={{background:'#0a1020',border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 14px',fontSize:12}}>
       <p style={{color:C.muted,marginBottom:6,fontWeight:600}}>{label}</p>
       {payload.filter(p=>p.value!=null&&p.value!==0).map((p,i)=>(
         <p key={i} style={{color:p.color||C.text,margin:'2px 0'}}>
@@ -226,18 +220,18 @@ const Tab = ({active,onClick,children,color}) => (
 );
 
 const KPI = ({label,value,sub,badge,color=C.text,compare}) => (
-  <div style={{background:C.card,borderRadius:10,padding:'14px 18px',border:\`1px solid ${C.border}\`}}>
+  <div style={{background:C.card,borderRadius:10,padding:'14px 18px',border:`1px solid ${C.border}`}}>
     <p style={{color:C.muted,fontSize:10,margin:'0 0 5px',textTransform:'uppercase',letterSpacing:.8}}>{label}</p>
     <p style={{color,fontSize:20,fontWeight:800,margin:0}}>{value}</p>
     {compare&&<p style={{margin:'4px 0 0',fontSize:11,fontWeight:600,color:compare.color}}>{compare.arrow} {compare.text}</p>}
     {sub&&<p style={{color:C.muted,fontSize:10,margin:'3px 0 0'}}>{sub}</p>}
-    {badge&&<span style={{display:'inline-block',marginTop:5,padding:'2px 8px',borderRadius:10,fontSize:10,fontWeight:700,background:\`${badge.c}22\`,color:badge.c}}>{badge.t}</span>}
+    {badge&&<span style={{display:'inline-block',marginTop:5,padding:'2px 8px',borderRadius:10,fontSize:10,fontWeight:700,background:`${badge.c}22`,color:badge.c}}>{badge.t}</span>}
   </div>
 );
 
 // 시즌 토글 버튼
 const SeasonToggle = ({view,setView}) => (
-  <div style={{display:'flex',gap:3,background:C.card2,borderRadius:8,padding:4,border:\`1px solid ${C.border}\`,width:'fit-content',marginBottom:14}}>
+  <div style={{display:'flex',gap:3,background:C.card2,borderRadius:8,padding:4,border:`1px solid ${C.border}`,width:'fit-content',marginBottom:14}}>
     <Tab active={view==='ALL'} onClick={()=>setView('ALL')} color={C.all}>전체</Tab>
     <Tab active={view==='25S'} onClick={()=>setView('25S')} color={C.s25}>25S (1년차)</Tab>
     <Tab active={view==='24S'} onClick={()=>setView('24S')} color={C.s24}>24S (2년차)</Tab>
@@ -282,7 +276,7 @@ const PrevInsight = ({items}) => (
     <p style={{margin:'0 0 10px',fontSize:11,fontWeight:700,color:C.s25}}>📌 전년 이 시점에는…</p>
     <div style={{display:'flex',flexDirection:'column',gap:7}}>
       {items.map((item,i)=>(
-        <div key={i} style={{fontSize:11,color:C.muted,lineHeight:1.6,borderLeft:\`2px solid rgba(56,189,248,0.3)\`,paddingLeft:10}}>
+        <div key={i} style={{fontSize:11,color:C.muted,lineHeight:1.6,borderLeft:`2px solid rgba(56,189,248,0.3)`,paddingLeft:10}}>
           <span style={{color:C.text,fontWeight:700}}>{item.label}:</span> {item.desc}
         </div>
       ))}
@@ -293,7 +287,7 @@ const PrevInsight = ({items}) => (
 // 시즌 배지
 const SKBadge = ({sk}) => (
   <span style={{padding:'1px 8px',borderRadius:10,fontSize:10,fontWeight:700,
-    background:sk==='25S'?\`${C.s25}22\`:sk==='24S'?\`${C.s24}22\`:\`${C.all}22\`,
+    background:sk==='25S'?`${C.s25}22`:sk==='24S'?`${C.s24}22`:`${C.all}22`,
     color:sk==='25S'?C.s25:sk==='24S'?C.s24:C.all}}>{sk}</span>
 );
 
@@ -454,7 +448,7 @@ function App() {
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:3}}>
             <div style={{width:4,height:24,background:C.accent,borderRadius:2}}/>
             <h1 style={{margin:0,fontSize:19,fontWeight:900,letterSpacing:-.3}}>S시즌 이월재고 소진 분석</h1>
-            <span style={{background:C.card,border:\`1px solid ${C.border}\`,borderRadius:20,padding:'3px 11px',fontSize:10,color:C.muted}}>기준 2026-03-08</span>
+            <span style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:'3px 11px',fontSize:10,color:C.muted}}>기준 2026-03-08</span>
           </div>
           <p style={{margin:0,color:C.muted,fontSize:11,paddingLeft:14}}>
             올해 운영재고 <strong style={{color:C.s25}}>25S {억(D25.t_ops)}</strong> + <strong style={{color:C.s24}}>24S {억(D24.t_ops)}</strong> = <strong style={{color:C.text}}>{억(ALL_OPS)}</strong>
@@ -462,12 +456,12 @@ function App() {
           </p>
         </div>
         <div style={{display:'flex',gap:12,fontSize:11}}>
-          <div style={{textAlign:'center',background:C.card,borderRadius:8,padding:'8px 14px',border:\`1px solid ${C.s25}44\`}}>
+          <div style={{textAlign:'center',background:C.card,borderRadius:8,padding:'8px 14px',border:`1px solid ${C.s25}44`}}>
             <p style={{margin:'0 0 2px',color:C.s25,fontWeight:700}}>25S (1년차)</p>
             <p style={{margin:0,color:C.text,fontSize:14,fontWeight:800}}>{억(D25.t_ops)}</p>
             <p style={{margin:'2px 0 0',color:C.muted,fontSize:10}}>전년 24S {억(D25.p_ops)}</p>
           </div>
-          <div style={{textAlign:'center',background:C.card,borderRadius:8,padding:'8px 14px',border:\`1px solid ${C.s24}44\`}}>
+          <div style={{textAlign:'center',background:C.card,borderRadius:8,padding:'8px 14px',border:`1px solid ${C.s24}44`}}>
             <p style={{margin:'0 0 2px',color:C.s24,fontWeight:700}}>24S (2년차)</p>
             <p style={{margin:0,color:C.text,fontSize:14,fontWeight:800}}>{억(D24.t_ops)}</p>
             <p style={{margin:'2px 0 0',color:C.muted,fontSize:10}}>전년 23S {억(D24.p_ops)}</p>
@@ -481,7 +475,7 @@ function App() {
         <ScenarioToggle sc={scenario} setSc={setScenario}/>
       </div>
       {/* 시나리오별 예측 방식 설명 */}
-      <div style={{marginBottom:14,padding:'7px 14px',borderRadius:8,background:'#0d1829',border:\`1px solid ${SCENARIO_DESC[scenario]?.color}44\`}}>
+      <div style={{marginBottom:14,padding:'7px 14px',borderRadius:8,background:'#0d1829',border:`1px solid ${SCENARIO_DESC[scenario]?.color}44`}}>
         <span style={{fontSize:10,fontWeight:700,color:SCENARIO_DESC[scenario]?.color}}>📐 예측 방식 ({SCENARIOS.find(s=>s.key===scenario)?.label})</span>
         <span style={{fontSize:10,color:'#8faec8',marginLeft:8}}>{SCENARIO_DESC[scenario]?.text}</span>
       </div>
@@ -490,14 +484,14 @@ function App() {
       <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:16}}>
 
         {/* 1. 운영재고 */}
-        <div style={{background:C.card,borderRadius:10,padding:'14px 18px',border:\`1px solid ${C.border}\`}}>
+        <div style={{background:C.card,borderRadius:10,padding:'14px 18px',border:`1px solid ${C.border}`}}>
           <p style={{color:C.muted,fontSize:10,margin:'0 0 5px',textTransform:'uppercase',letterSpacing:.8}}>운영재고</p>
           <p style={{color:V.color,fontSize:20,fontWeight:800,margin:0}}>{억(V.ops)}</p>
           <p style={{margin:'4px 0 0',fontSize:11,fontWeight:600,color:cmp(V.ops,V.p_ops,V.color,'전년').color}}>
             {cmp(V.ops,V.p_ops,V.color,'전년').arrow} {cmp(V.ops,V.p_ops,V.color,'전년').text}
           </p>
           <p style={{color:C.muted,fontSize:10,margin:'3px 0 0'}}>전년 {억(V.p_ops)}</p>
-          <div style={{marginTop:8,borderTop:\`1px solid ${C.border}\`,paddingTop:7,display:'flex',flexDirection:'column',gap:3}}>
+          <div style={{marginTop:8,borderTop:`1px solid ${C.border}`,paddingTop:7,display:'flex',flexDirection:'column',gap:3}}>
             <p style={{margin:0,fontSize:9,color:C.muted,fontWeight:600}}>📦 재고 구성</p>
             <p style={{margin:0,fontSize:9,color:C.muted}}>25년 기말재고 + 26년 입고</p>
             <p style={{margin:0,fontSize:9,color:C.muted}}>26년 입고 현재 0 → 기말재고 = 운영재고</p>
@@ -507,29 +501,29 @@ function App() {
         {/* 2. 1~10주 누적판매 (실측) */}
         <KPI label="1~10주 누적판매" value={억2(tsync)}
           compare={cmp(tsync, psync, V.color, '전년 동기')}
-          sub={\`판매율 ${pct(tsync,V.ops)} · 전년 동기 ${(psync/V.p_ops*100).toFixed(1)}%\`}
+          sub={`판매율 ${pct(tsync,V.ops)} · 전년 동기 ${(psync/V.p_ops*100).toFixed(1)}%`}
           badge={{t:'실데이터',c:V.color}}/>
 
         {/* 3. ~08/31 누적 예상 — 시나리오 연동 */}
         <KPI label="~08/31 누적 예상" value={억(S_831)}
           compare={cmp(S_831, V.pc[34], V.color, '전년 동기')}
-          sub={\`판매율 ${(S_831/V.ops*100).toFixed(1)}% · 전년 ${(V.pc[34]/V.p_ops*100).toFixed(1)}%\`}/>
+          sub={`판매율 ${(S_831/V.ops*100).toFixed(1)}% · 전년 ${(V.pc[34]/V.p_ops*100).toFixed(1)}%`}/>
 
         {/* 4. 연간 추정 총판매 — 시나리오 연동 */}
         <KPI label="연간 추정 총판매" value={억(S_SALES)}
           compare={cmp(S_SALES, V.p_total, V.color, '전년')}
-          sub={\`판매율 ${(S_SALES/V.ops*100).toFixed(1)}% · 전년 ${(V.p_total/V.p_ops*100).toFixed(1)}%\`}/>
+          sub={`판매율 ${(S_SALES/V.ops*100).toFixed(1)}% · 전년 ${(V.p_total/V.p_ops*100).toFixed(1)}%`}/>
 
         {/* 5. 연말 잔여 예상 — 시나리오 연동 */}
         <KPI label="연말 잔여 예상" value={억(S_REMAIN)}
           compare={cmp(S_REMAIN, V.prev_yearend_stock, S_REMAIN<V.prev_yearend_stock?C.good:C.bad, '전년 기말재고')}
-          sub={\`전년 기말재고 ${억(V.prev_yearend_stock)}\`}
+          sub={`전년 기말재고 ${억(V.prev_yearend_stock)}`}
           color={C.bad}/>
 
       </div>
 
       {/* 메인 탭 */}
-      <div style={{display:'flex',gap:3,marginBottom:16,background:C.card,borderRadius:8,padding:4,width:'fit-content',border:\`1px solid ${C.border}\`}}>
+      <div style={{display:'flex',gap:3,marginBottom:16,background:C.card,borderRadius:8,padding:4,width:'fit-content',border:`1px solid ${C.border}`}}>
         {[['now','📍 현재 페이스'],['forecast','📈 소진 예측'],['segment','👥 세그먼트'],['insight','💡 전년 인사이트']].map(([k,l])=>(
           <Tab key={k} active={mainTab===k} onClick={()=>setMainTab(k)}>{l}</Tab>
         ))}
@@ -550,16 +544,16 @@ function App() {
               const p_yearr = p_ops - p_year;  // 연말 잔여
               return (
                 <PrevInsight items={[
-                  {label:'전년 동기 10주',   desc:\`${억2(p_10w)} / 판매율 ${(p_10w/p_ops*100).toFixed(1)}%\`},
-                  {label:'전년 시즌마감(~8/31)', desc:\`누적판매 ${억(p_831)} (${(p_831/p_ops*100).toFixed(1)}%) · 잔여재고 ${억(p_831r)} (${(p_831r/p_ops*100).toFixed(1)}%)\`},
-                  {label:'전년 연말마감',    desc:\`누적판매 ${억(p_year)} (${(p_year/p_ops*100).toFixed(1)}%) · 잔여재고 ${억(p_yearr)} (${(p_yearr/p_ops*100).toFixed(1)}%)\`},
+                  {label:'전년 동기 10주',   desc:`${억2(p_10w)} / 판매율 ${(p_10w/p_ops*100).toFixed(1)}%`},
+                  {label:'전년 시즌마감(~8/31)', desc:`누적판매 ${억(p_831)} (${(p_831/p_ops*100).toFixed(1)}%) · 잔여재고 ${억(p_831r)} (${(p_831r/p_ops*100).toFixed(1)}%)`},
+                  {label:'전년 연말마감',    desc:`누적판매 ${억(p_year)} (${(p_year/p_ops*100).toFixed(1)}%) · 잔여재고 ${억(p_yearr)} (${(p_yearr/p_ops*100).toFixed(1)}%)`},
                 ]}/>
               );
             })()}
           </div>
 
           {/* 주차별 실판매 vs 전년 */}
-          <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
             <h3 style={{margin:'0 0 3px',fontSize:13}}>주차별 판매 — 올해 실적 vs 전년 동기 <SKBadge sk={skView}/></h3>
             <p style={{margin:'0 0 12px',fontSize:10,color:C.muted}}>03/01 주 선행 판매 상승 중</p>
             <ResponsiveContainer width="100%" height={200}>
@@ -580,10 +574,10 @@ function App() {
           </div>
 
           {/* 누적 판매율 */}
-          <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
             <h3 style={{margin:'0 0 3px',fontSize:13}}>누적 판매율 추이 <SKBadge sk={skView}/></h3>
             <p style={{margin:'0 0 12px',fontSize:10,color:C.muted}}>
-              {\`올해 ${(tsync/V.ops*100).toFixed(1)}% — 전년 동기 ${(psync/V.p_ops*100).toFixed(1)}% 대비 ${((tsync/V.ops-psync/V.p_ops)*100).toFixed(1)}%p\`}
+              {`올해 ${(tsync/V.ops*100).toFixed(1)}% — 전년 동기 ${(psync/V.p_ops*100).toFixed(1)}% 대비 ${((tsync/V.ops-psync/V.p_ops)*100).toFixed(1)}%p`}
             </p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={WEEKS_ACT.map((wl,i)=>({
@@ -594,7 +588,7 @@ function App() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#0a1020"/>
                 <XAxis dataKey="week" tick={{fill:C.muted,fontSize:10}}/>
                 <YAxis domain={[0,15]} unit="%" tick={{fill:C.muted,fontSize:9}}/>
-                <Tooltip formatter={v=>\`${v.toFixed(2)}%\`} contentStyle={{background:'#0a1020',border:\`1px solid ${C.border}\`}} labelStyle={{color:C.text}}/>
+                <Tooltip formatter={v=>`${v.toFixed(2)}%`} contentStyle={{background:'#0a1020',border:`1px solid ${C.border}`}} labelStyle={{color:C.text}}/>
                 <Legend wrapperStyle={{color:C.muted,fontSize:11}}/>
                 <Line dataKey="prev_r" name="전년 누적판매율" stroke={C.prev}   strokeWidth={2} dot={false} strokeDasharray="5 3"/>
                 <Line dataKey="this_r" name="올해 누적판매율" stroke={V.color}  strokeWidth={2.5} dot={{fill:V.color,r:3}}/>
@@ -604,7 +598,7 @@ function App() {
 
           {/* 25S vs 24S 나란히 (전체 뷰에서만) */}
           {skView==='ALL' && (
-            <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`,gridColumn:'1/-1'}}>
+            <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
               <h3 style={{margin:'0 0 12px',fontSize:13}}>시즌별 10주 판매율 비교</h3>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
                 {[{d:D25,calc:C25,color:C.s25},{d:D24,calc:C24,color:C.s24}].map(({d,calc,color})=>{
@@ -612,21 +606,21 @@ function App() {
                   const ps = d.p_sync_n.reduce((a,b)=>a+b,0);
                   const tp = ts/d.t_ops*100; const pp = ps/d.p_ops*100;
                   return (
-                    <div key={d.label} style={{background:C.card2,borderRadius:8,padding:14,borderTop:\`3px solid ${color}\`}}>
+                    <div key={d.label} style={{background:C.card2,borderRadius:8,padding:14,borderTop:`3px solid ${color}`}}>
                       <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
                         <span style={{color,fontWeight:800,fontSize:14}}>{d.label}</span>
                         <span style={{color:C.muted,fontSize:11}}>{d.cmp}</span>
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:10}}>
-                        {[['운영재고',억(d.t_ops)],['10주판매',억2(ts)],['판매율',\`${tp.toFixed(1)}%\`]].map(([l,v])=>(
+                        {[['운영재고',억(d.t_ops)],['10주판매',억2(ts)],['판매율',`${tp.toFixed(1)}%`]].map(([l,v])=>(
                           <div key={l}><p style={{margin:0,fontSize:9,color:C.muted}}>{l}</p><p style={{margin:0,fontSize:13,fontWeight:700,color}}>{v}</p></div>
                         ))}
                       </div>
                       <div style={{background:'#0a1020',borderRadius:3,height:6,marginBottom:4}}>
-                        <div style={{width:\`${Math.min(pp/15*100,100)}%\`,height:'100%',background:C.prev,borderRadius:3,opacity:.5}}/>
+                        <div style={{width:`${Math.min(pp/15*100,100)}%`,height:'100%',background:C.prev,borderRadius:3,opacity:.5}}/>
                       </div>
                       <div style={{background:'#0a1020',borderRadius:3,height:6}}>
-                        <div style={{width:\`${Math.min(tp/15*100,100)}%\`,height:'100%',background:color,borderRadius:3}}/>
+                        <div style={{width:`${Math.min(tp/15*100,100)}%`,height:'100%',background:color,borderRadius:3}}/>
                       </div>
                       <div style={{display:'flex',justifyContent:'space-between',marginTop:4,fontSize:9,color:C.muted}}>
                         <span>전년 {pp.toFixed(1)}%</span><span style={{color}}>올해 {tp.toFixed(1)}%</span>
@@ -653,7 +647,7 @@ function App() {
           </div>
 
           {/* ── 누적 소진 곡선 ── */}
-          <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`,gridColumn:'1/-1'}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
               <div>
                 <h3 style={{margin:'0 0 3px',fontSize:13}}>누적 소진 예측 곡선 <SKBadge sk={skView}/></h3>
@@ -667,9 +661,9 @@ function App() {
               <div style={{display:'flex',gap:10}}>
                 {[
                   {label:'전년 기말재고', val:V.prev_yearend_stock, color:C.prev},
-                  {label:\`현 재고 추정 (${SCENARIOS.find(s=>s.key===scenario)?.label})\`, val:S_REMAIN, color:SCENARIOS.find(s=>s.key===scenario)?.color||C.warn},
+                  {label:`현 재고 추정 (${SCENARIOS.find(s=>s.key===scenario)?.label})`, val:S_REMAIN, color:SCENARIOS.find(s=>s.key===scenario)?.color||C.warn},
                 ].map(({label,val,color})=>(
-                  <div key={label} style={{textAlign:'center',background:C.card2,borderRadius:8,padding:'7px 14px',border:\`1px solid ${color}44\`}}>
+                  <div key={label} style={{textAlign:'center',background:C.card2,borderRadius:8,padding:'7px 14px',border:`1px solid ${color}44`}}>
                     <p style={{margin:'0 0 2px',fontSize:9,color:C.muted}}>{label}</p>
                     <p style={{margin:0,fontSize:16,fontWeight:800,color}}>{억(val)}</p>
                     <p style={{margin:'2px 0 0',fontSize:9,color:C.muted}}>{(val/V.ops*100).toFixed(1)}%</p>
@@ -695,14 +689,14 @@ function App() {
             </ResponsiveContainer>
 
             {/* 체크포인트 — 시나리오 연동 */}
-            <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:0,marginTop:14,borderTop:\`1px solid ${C.border}\`,paddingTop:12}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:0,marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:12}}>
 {[{label:'현재',idx:V.t9.length-1},{label:'4월 초',idx:13},{label:'5월 말',idx:20},{label:'6/29',idx:25},{label:'~08/31',idx:34},{label:'연말',idx:52}].map((cp,i)=>{
                 const scSales  = S_EC[cp.idx];
                 const prevSales = V.pc[cp.idx];
                 const isYearend = i===5;
                 const scColor  = SCENARIOS.find(s=>s.key===scenario)?.color||C.warn;
                 return (
-                  <div key={i} style={{borderLeft:\`2px solid ${i===0?V.color:C.border}\`,paddingLeft:10,paddingRight:6}}>
+                  <div key={i} style={{borderLeft:`2px solid ${i===0?V.color:C.border}`,paddingLeft:10,paddingRight:6}}>
                     <p style={{margin:'0 0 3px',fontSize:9,fontWeight:700,color:i===0?V.color:C.muted}}>{cp.label}</p>
                     <p style={{margin:'1px 0 0',fontSize:15,fontWeight:800,color:i===0?V.color:scColor}}>{(scSales/V.ops*100).toFixed(1)}%</p>
                     <p style={{margin:'1px 0 3px',fontSize:9,color:scColor}}>{억(scSales)}</p>
@@ -711,7 +705,7 @@ function App() {
                       YoY {scSales>=prevSales?'+':'△'}{억2(Math.abs(scSales-prevSales))}
                     </p>
                     {isYearend && (
-                      <div style={{margin:'5px 0 0',borderTop:\`1px dashed ${C.border}\`,paddingTop:4}}>
+                      <div style={{margin:'5px 0 0',borderTop:`1px dashed ${C.border}`,paddingTop:4}}>
                         <p style={{margin:'0 0 1px',fontSize:9,fontWeight:700,color:C.bad}}>현 재고 추정 {억(V.ops-scSales)}</p>
                         <p style={{margin:0,fontSize:9,color:C.prev}}>전년기말 {억(V.prev_yearend_stock)}</p>
                         <p style={{margin:'2px 0 0',fontSize:9,fontWeight:600,color:(V.ops-scSales)<V.prev_yearend_stock?C.good:C.bad}}>
@@ -727,7 +721,7 @@ function App() {
 
           {/* 시즌별 예측 비교 (전체 뷰) */}
           {skView==='ALL' && (
-            <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`,gridColumn:'1/-1'}}>
+            <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
               <h3 style={{margin:'0 0 14px',fontSize:13}}>시즌별 예측 비교</h3>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
                 {[{d:D25,dt_ec:DT25_EC,dt_ops:DT25_OPS,color:C.s25},{d:D24,dt_ec:DT24_EC,dt_ops:DT24_OPS,color:C.s24}].map(({d,dt_ec,dt_ops,color})=>{
@@ -769,17 +763,17 @@ function App() {
                   const sc831 = scEc[34];  // ~08/31 누적
                   const scColor = SCENARIOS.find(s=>s.key===scenario)?.color||C.warn;
                   return (
-                    <div key={d.label} style={{background:C.card2,borderRadius:8,padding:14,borderTop:\`3px solid ${color}\`}}>
+                    <div key={d.label} style={{background:C.card2,borderRadius:8,padding:14,borderTop:`3px solid ${color}`}}>
                       <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
                         <span style={{color,fontWeight:800}}>{d.label}</span>
-                        <span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:\`${scColor}22\`,color:scColor}}>{SCENARIOS.find(s=>s.key===scenario)?.label}</span>
+                        <span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:`${scColor}22`,color:scColor}}>{SCENARIOS.find(s=>s.key===scenario)?.label}</span>
                       </div>
                       {[
-                        {label:'운영재고',         v:억(d.t_ops),   sub:\`전년 ${억(d.p_ops)}\`},
-                        {label:'~08/31 누적 예상', v:\`${억(sc831)} (${(sc831/d.t_ops*100).toFixed(1)}%)\`, sub:\`전년동기 ${억(calc.p_cumul[34])} / YoY ${sc831>=calc.p_cumul[34]?'+':'△'}${억2(Math.abs(sc831-calc.p_cumul[34]))}\`, sc:true},
-                        {label:'연말 현 재고 추정',         v:억(scRemain), warn:true, sub:\`전년기말 ${억(pYS)} 대비 ${scRemain<pYS?'△':'+'}${((scRemain/pYS-1)*100).toFixed(1)}%\`},
+                        {label:'운영재고',         v:억(d.t_ops),   sub:`전년 ${억(d.p_ops)}`},
+                        {label:'~08/31 누적 예상', v:`${억(sc831)} (${(sc831/d.t_ops*100).toFixed(1)}%)`, sub:`전년동기 ${억(calc.p_cumul[34])} / YoY ${sc831>=calc.p_cumul[34]?'+':'△'}${억2(Math.abs(sc831-calc.p_cumul[34]))}`, sc:true},
+                        {label:'연말 현 재고 추정',         v:억(scRemain), warn:true, sub:`전년기말 ${억(pYS)} 대비 ${scRemain<pYS?'△':'+'}${((scRemain/pYS-1)*100).toFixed(1)}%`},
                       ].map(({label,v,warn,sc,sub})=>(
-                        <div key={label} style={{padding:'5px 0',borderBottom:\`1px solid ${C.border}\`}}>
+                        <div key={label} style={{padding:'5px 0',borderBottom:`1px solid ${C.border}`}}>
                           <div style={{display:'flex',justifyContent:'space-between'}}>
                             <span style={{fontSize:11,color:C.muted}}>{label}</span>
                             <span style={{fontSize:11,fontWeight:700,color:warn?C.bad:sc?scColor:color}}>{v}</span>
@@ -796,7 +790,7 @@ function App() {
 
           {/* 세그먼트별 스케일 테이블 */}
           {V.dt_segs && (
-            <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`,gridColumn:'1/-1'}}>
+            <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
               <h3 style={{margin:'0 0 4px',fontSize:13}}>품목/성별 세그먼트별 스케일 <SKBadge sk={skView}/></h3>
               <p style={{margin:'0 0 12px',fontSize:10,color:C.muted}}>
                 OK=실제 비율 / NEW=전년 재고 부족(평균스케일 대체) / ZERO=올해 재고 없음
@@ -804,7 +798,7 @@ function App() {
               <div style={{overflowX:'auto'}}>
                 <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
                   <thead>
-                    <tr style={{borderBottom:\`2px solid ${C.border}\`}}>
+                    <tr style={{borderBottom:`2px solid ${C.border}`}}>
                       {['품목','성별','올해 운영','전년 운영','스케일','구분'].map(h=>(
                         <th key={h} style={{padding:'4px 8px',color:C.muted,fontWeight:600,textAlign:'right',fontSize:10,
                           ...(h==='품목'||h==='성별'||h==='구분'?{textAlign:'center'}:{})}}>{h}</th>
@@ -816,7 +810,7 @@ function App() {
                       const flagColor = s.flag==='OK'?C.good:s.flag==='NEW'?C.warn:C.muted;
                       const scColor   = s.sc>1.5?C.bad:s.sc>0.8?C.text:s.sc===0?C.muted:C.warn;
                       return (
-                        <tr key={i} style={{borderBottom:\`1px solid ${C.border}\`,background:i%2?'transparent':C.card2}}>
+                        <tr key={i} style={{borderBottom:`1px solid ${C.border}`,background:i%2?'transparent':C.card2}}>
                           <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:V.color}}>{s.cat}</td>
                           <td style={{padding:'5px 8px',textAlign:'center',color:s.gen==='W'?C.s25:s.gen==='M'?C.s24:C.muted}}>{s.gen}</td>
                           <td style={{padding:'5px 8px',textAlign:'right'}}>{s.t>0?억(s.t):'-'}</td>
@@ -824,7 +818,7 @@ function App() {
                           <td style={{padding:'5px 8px',textAlign:'right',fontWeight:700,color:scColor}}>{s.sc.toFixed(3)}</td>
                           <td style={{padding:'5px 8px',textAlign:'center'}}>
                             <span style={{padding:'2px 6px',borderRadius:8,fontSize:9,fontWeight:700,
-                              background:\`${flagColor}22\`,color:flagColor}}>{s.flag}</span>
+                              background:`${flagColor}22`,color:flagColor}}>{s.flag}</span>
                           </td>
                         </tr>
                       );
@@ -836,7 +830,7 @@ function App() {
           )}
 
           {/* 월별 예상 판매 — 시나리오 연동 라인차트 */}
-          <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`,gridColumn:'1/-1'}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
               <h3 style={{margin:0,fontSize:13}}>월별 예상 판매</h3>
               <div style={{display:'flex',gap:12,fontSize:10,color:C.muted}}>
@@ -919,7 +913,7 @@ function App() {
                     <Tooltip content={<Tip/>}/>
                     <Bar dataKey="prev_all" name="전년 전체"  fill={C.prev}  radius={[3,3,0,0]} opacity={0.35} barSize={28}/>
                     <Bar dataKey="act_all"  name="올해 실측"  fill={scColor} radius={[3,3,0,0]} opacity={0.7}  barSize={28}/>
-                    <Line dataKey="sc_all" name={\`전체 예측(${SCENARIOS.find(x=>x.key===scenario)?.label})\`} stroke={scColor} strokeWidth={2.5} dot={{fill:scColor,r:4}}/>
+                    <Line dataKey="sc_all" name={`전체 예측(${SCENARIOS.find(x=>x.key===scenario)?.label})`} stroke={scColor} strokeWidth={2.5} dot={{fill:scColor,r:4}}/>
                     <Line dataKey="sc_25"  name="25S 예측"  stroke={C.s25}  strokeWidth={2} dot={{fill:C.s25,r:3}}  strokeDasharray="5 2"/>
                     <Line dataKey="sc_24"  name="24S 예측"  stroke={C.s24}  strokeWidth={2} dot={{fill:C.s24,r:3}}  strokeDasharray="5 2"/>
                   </ComposedChart>
@@ -936,13 +930,13 @@ function App() {
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
           <div style={{gridColumn:'1/-1'}}>
             <PrevInsight items={[
-              {label:'전년 연간 성별 판매율 / 현 재고 기준', desc:\`W ${skView==='24S'?(D24.gen.W.p_sales/D24.gen.W.p_ops*100).toFixed(1):skView==='25S'?(D25.gen.W.p_sales/D25.gen.W.p_ops*100).toFixed(1):((D25.gen.W.p_sales+D24.gen.W.p_sales)/(D25.gen.W.p_ops+D24.gen.W.p_ops)*100).toFixed(1)}% / M ${skView==='24S'?(D24.gen.M.p_sales/D24.gen.M.p_ops*100).toFixed(1):skView==='25S'?(D25.gen.M.p_sales/D25.gen.M.p_ops*100).toFixed(1):((D25.gen.M.p_sales+D24.gen.M.p_sales)/(D25.gen.M.p_ops+D24.gen.M.p_ops)*100).toFixed(1)}%\`},
+              {label:'전년 연간 성별 판매율 / 현 재고 기준', desc:`W ${skView==='24S'?(D24.gen.W.p_sales/D24.gen.W.p_ops*100).toFixed(1):skView==='25S'?(D25.gen.W.p_sales/D25.gen.W.p_ops*100).toFixed(1):((D25.gen.W.p_sales+D24.gen.W.p_sales)/(D25.gen.W.p_ops+D24.gen.W.p_ops)*100).toFixed(1)}% / M ${skView==='24S'?(D24.gen.M.p_sales/D24.gen.M.p_ops*100).toFixed(1):skView==='25S'?(D25.gen.M.p_sales/D25.gen.M.p_ops*100).toFixed(1):((D25.gen.M.p_sales+D24.gen.M.p_sales)/(D25.gen.M.p_ops+D24.gen.M.p_ops)*100).toFixed(1)}%`},
               {label:'특이점', desc: skView==='25S'?'25S 여성 운영재고 비중 77% — 여성 중심 시즌':skView==='24S'?'24S 남성 운영재고 비중 70% — 남성 2년차 재고 부담':' 전체 여성 63% vs 남성 40% — 시즌별 성비 역전'},
             ]}/>
           </div>
 
           {/* 성별 현황 */}
-          <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
             <h3 style={{margin:'0 0 12px',fontSize:13}}>성별 현 재고 <SKBadge sk={skView}/></h3>
             {(['W','M','X']).map(g=>{
               const genRows = skView==='ALL'
@@ -971,8 +965,8 @@ function App() {
                   </div>
                   {/* 잔여재고 바: 전체 중 남은 비율, 목표선=전년기말잔여 */}
                   <div style={{position:'relative',background:'#0a1020',borderRadius:4,height:8}}>
-                    <div style={{position:'absolute',width:\`${Math.min(100-tp,100)}%\`,height:'100%',background:gColor,borderRadius:4,opacity:.7}}/>
-                    <div style={{position:'absolute',top:-2,left:\`${Math.min(100-yearendGoal,100)}%\`,width:2,height:12,background:C.bad,borderRadius:1}}/>
+                    <div style={{position:'absolute',width:`${Math.min(100-tp,100)}%`,height:'100%',background:gColor,borderRadius:4,opacity:.7}}/>
+                    <div style={{position:'absolute',top:-2,left:`${Math.min(100-yearendGoal,100)}%`,width:2,height:12,background:C.bad,borderRadius:1}}/>
                   </div>
                   <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
                     <span style={{fontSize:9,color:gColor}}>현 재고 {억(Math.max(genRows.t_ops-(genRows.t_sales||0),0))}</span>
@@ -984,11 +978,11 @@ function App() {
           </div>
 
           {/* 품목 테이블 */}
-          <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
             <h3 style={{margin:'0 0 12px',fontSize:13}}>품목별 현황 <SKBadge sk={skView}/></h3>
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:10}}>
               <thead>
-                <tr style={{borderBottom:\`1px solid ${C.border}\`}}>
+                <tr style={{borderBottom:`1px solid ${C.border}`}}>
                   {['품목','운영','10주판매','현 재고','전년연말잔여','판정'].map(h=>(
                     <th key={h} style={{padding:'4px 6px',color:C.muted,textAlign:h==='품목'?'left':'right',fontWeight:500}}>{h}</th>
                   ))}
@@ -1018,14 +1012,14 @@ function App() {
                       const color = ratio<0.8?C.good:ratio<1.1?C.warn:C.bad;
                       const badge = ratio<0.8?'양호':ratio<1.1?'주의':'위험';
                       return (
-                        <tr key={cat} style={{borderBottom:\`1px solid ${C.card2}\`,background:i%2?'rgba(255,255,255,.01)':'transparent'}}>
+                        <tr key={cat} style={{borderBottom:`1px solid ${C.card2}`,background:i%2?'rgba(255,255,255,.01)':'transparent'}}>
                           <td style={{padding:'5px 6px',fontWeight:700}}>{cat}</td>
                           <td style={{padding:'5px 6px',color:C.muted,textAlign:'right'}}>{억(v.t_ops)}</td>
                           <td style={{padding:'5px 6px',color:V.color,textAlign:'right'}}>{억2(v.t_s)}</td>
                           <td style={{padding:'5px 6px',textAlign:'right',fontWeight:700,color:color}}>{억(tRemain)}</td>
                           <td style={{padding:'5px 6px',color:C.prev,textAlign:'right'}}>{pRemain>0?억(pRemain):'-'}</td>
                           <td style={{padding:'5px 6px',textAlign:'right'}}>
-                            <span style={{padding:'1px 6px',borderRadius:10,fontSize:9,fontWeight:700,background:\`${color}22\`,color}}>{badge}</span>
+                            <span style={{padding:'1px 6px',borderRadius:10,fontSize:9,fontWeight:700,background:`${color}22`,color}}>{badge}</span>
                           </td>
                         </tr>
                       );
@@ -1040,7 +1034,7 @@ function App() {
       {/* ── 전년 인사이트 ── */}
       {mainTab==='insight' && (
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-          <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
             <h3 style={{margin:'0 0 12px',fontSize:13}}>전년 월별 판매 패턴</h3>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={periodData}>
@@ -1053,7 +1047,7 @@ function App() {
             </ResponsiveContainer>
           </div>
 
-          <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
             <h3 style={{margin:'0 0 12px',fontSize:13}}>전년 주차별 패턴 <SKBadge sk={skView}/></h3>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={weekData.map(d=>({week:d.week,prev:d.prev}))}>
@@ -1067,24 +1061,24 @@ function App() {
             </ResponsiveContainer>
           </div>
 
-          <div style={{background:C.card,borderRadius:12,padding:18,border:\`1px solid ${C.border}\`,gridColumn:'1/-1'}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
             <h3 style={{margin:'0 0 14px',fontSize:13}}>주요 인사이트 & 올해 시사점</h3>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
               {[
                 {title:'① 적정 판기', icon:'📅', color:C.accent,
-                 prev:\`5월 중순~6월 말 핵심 판기 — 이 구간 전체의 ${((ALL_PC[25]-ALL_PC[18])/ALL_PC[52]*100).toFixed(0)}% 집중 (6/29 단주 ${억2(ALL_PREV[25])})\`,
+                 prev:`5월 중순~6월 말 핵심 판기 — 이 구간 전체의 ${((ALL_PC[25]-ALL_PC[18])/ALL_PC[52]*100).toFixed(0)}% 집중 (6/29 단주 ${억2(ALL_PREV[25])})`,
                  imp:'6/29 단주 급등은 세일 시작 일시 현상 — 중요한 건 5월부터 6월 말까지의 구간 관리',
                  action:'5월 초부터 포지셔닝 시작, 6월 말까지 꾸준한 재고 노출 유지'},
                 {title:'② 25S WJ 여성 집중', icon:'🧥', color:C.s25,
-                 prev:\`25S WJ ${억(D25.cat.WJ.t_ops)} 운영 — 전체의 44%\`,
+                 prev:`25S WJ ${억(D25.cat.WJ.t_ops)} 운영 — 전체의 44%`,
                  imp:'여성 비중 높아 할인 없이도 소진 가능성. 정상가 유지 전략 유효',
                  action:'3-4월 정상가 판매 집중, 5월 이후 선별 할인'},
                 {title:'③ 24S 남성 2년차 부담', icon:'⚠️', color:C.s24,
-                 prev:\`24S 남성 운영 ${억(D24.gen.M.t_ops)} — 24S 전체의 70%\`,
+                 prev:`24S 남성 운영 ${억(D24.gen.M.t_ops)} — 24S 전체의 70%`,
                  imp:'2년차 목표: 전년 기말재고(23S 41.5억) 이하 소진 — 남성 집중도가 핵심 리스크',
                  action:'24S 남성 선제 할인, 아울렛 채널 집중'},
                 {title:'④ DH 초반 소진 우수', icon:'❄️', color:C.good,
-                 prev:\`전년 DH 동기 10주 ${억2(ALL_PREV[24] - ALL_PREV[16])} — 초반에 집중 판매\`,
+                 prev:`전년 DH 동기 10주 ${억2(ALL_PREV[24] - ALL_PREV[16])} — 초반에 집중 판매`,
                  imp:'DH는 1-2월에 정상가 소진 가능한 몇 안 되는 품목',
                  action:'DH 정상가 유지 권장, 3월까지 할인 보류'},
                 {title:'⑤ SP·TS 세일 의존', icon:'👕', color:C.warn,
@@ -1096,7 +1090,7 @@ function App() {
                  imp:'올해 기조: 추가 인하 최소화. 단, 2년차(24S) 잔여가 많아질 경우 채널 분산이 현실적 대안',
                  action:'정상가 방어 우선 → 소진 부진 시 아울렛 물량 조정으로 대응'},
               ].map(({title,icon,color,prev,imp,action})=>(
-                <div key={title} style={{background:C.card2,borderRadius:10,padding:14,borderTop:\`3px solid ${color}\`}}>
+                <div key={title} style={{background:C.card2,borderRadius:10,padding:14,borderTop:`3px solid ${color}`}}>
                   <p style={{margin:'0 0 8px',fontSize:12,fontWeight:700,color}}>{icon} {title}</p>
                   <p style={{margin:'0 0 5px',fontSize:10,color:C.muted,lineHeight:1.6}}>
                     <span style={{color:C.prev,fontWeight:600}}>전년: </span>{prev}
@@ -1104,7 +1098,7 @@ function App() {
                   <p style={{margin:'0 0 6px',fontSize:10,color:C.muted,lineHeight:1.6}}>
                     <span style={{color:V.color,fontWeight:600}}>시사점: </span>{imp}
                   </p>
-                  <p style={{margin:0,fontSize:10,color:C.text,lineHeight:1.6,background:\`${color}11\`,borderRadius:6,padding:'6px 8px'}}>
+                  <p style={{margin:0,fontSize:10,color:C.text,lineHeight:1.6,background:`${color}11`,borderRadius:6,padding:'6px 8px'}}>
                     → {action}
                   </p>
                 </div>
@@ -1122,12 +1116,8 @@ function App() {
 }
 
 
-        const root = ReactDOM.createRoot(document.getElementById("root"));
-        root.render(React.createElement(App));
-      `;
-      document.body.appendChild(script);
-      Babel.transformScriptTags();
-    });
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(React.createElement(App));
   </script>
 </body>
 </html>
