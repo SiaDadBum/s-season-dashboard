@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S시즌 이월재고 대시보드</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f172a; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo } = React;
+    const {
+      LineChart, Line, BarChart, Bar,
+      XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+      ResponsiveContainer, ReferenceLine, ComposedChart
+    } = Recharts;
+
+import {
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, ReferenceLine, ComposedChart
+} from "recharts";
+
+// ══════════════════════════════════════════════════════
+// RAW DATA — 시즌별 분리
+// 올해: 25기말 25S(68.6억) · 24S(39.5억)
+// 전년: 24기말 24S(78.0억) · 23S(41.6억)
+// ══════════════════════════════════════════════════════
+const LABELS_53 = ["01/05","01/12","01/19","01/26","02/02","02/09","02/16","02/23","03/02","03/09","03/16","03/23","03/30","04/06","04/13","04/20","04/27","05/04","05/11","05/18","05/25","06/01","06/08","06/15","06/22","06/29","07/06","07/13","07/20","07/27","08/03","08/10","08/17","08/24","08/31","09/07","09/14","09/21","09/28","10/05","10/12","10/19","10/26","11/02","11/09","11/16","11/23","11/30","12/07","12/14","12/21","12/28","01/04"];
+const WEEKS_ACT = ["01/04","01/11","01/18","01/25","02/01","02/08","02/15","02/22","03/01","03/08"];
+
+// 기말재고 (연말 잔여 비교 기준)
+// PREV = 25년기말재고.xlsx — 전년(25년) 연말에 실제 남은 이월재고
+const YEAREND_STOCK = {
+  THIS_25S: 6858000000,  // 25기말 25S — 올해 25S 기초재고
+  THIS_24S: 3948000000,  // 25기말 24S — 올해 24S 기초재고
+  PREV_24S: 4064000000,  // 전년 25S(1년차) 실제 연말 잔여 (24S 운영83.2억 - 연간판매42.5억)
+  PREV_23S: 1755000000,  // 전년 24S(2년차) 실제 연말 잔여 (23S 운영43.6억 - 연간판매26.1억)
+};
+
+// ── 25S (1년차 이월) — 비교: 전년 24S ──
+const D25 = {
+  label:'25S', cmp:'전년 24S', color:'#38bdf8',
+  t_ops: 6854736000,
+  t_weekly: [2600000, 9650000, 25960000, 18070000, 25070000, 19348000, 19610000, 54680000, 44440000, 77260000],
+  t_weekly_r:[7942000, 7824800, 19625550, 14418370, 17922120, 16203580, 14805680, 39130800, 31983310, 55413820],
+  p_ops: 8317444000,
+  p_weekly:[3650000, 2240000, 32352000, 39642000, 50826000, 45824000, 82262000, 80756000, 66328000, 143906000, 89972000, 102368000, 102084000, 121404000, 163876000, 128476000, 96236000, 88532000, 116436000, 120238000, 149921000, 179071000, 185048000, 138859000, 156619000, 328772000, 69152000, 100954000, 83884000, 91984000, 101175000, 73184000, 92092000, 58217000, 55721000, 53259000, 46810000, 90119000, 54420000, 46106000, 63029000, 40477000, 82759000, 36788000, 27089000, 38613000, 17880000, 24580000, 14140000, 15856000, 23875000, 27460000, 8360000],
+  p_sync_n:[3650000, 2240000, 32352000, 39642000, 50826000, 45824000, 82262000, 80756000, 66328000, 143906000],
+  gen:{
+    W:{ t_ops:5260796000, t_sales:259508000, t_rev:199629540, p_ops:2999172000, p_sales:1866479000, p_9w:357730000 },
+    M:{ t_ops:1593940000, t_sales:37180000, t_rev:25640490, p_ops:4840922000, p_sales:2056944000, p_9w:168620000 },
+    X:{ t_ops:0, t_sales:0, t_rev:0, p_ops:477350000, p_sales:330258000, p_9w:21436000 },
+  },
+  cat:{
+    WJ:{ t_ops:3004100000, t_s:122470000, t_r:91633400, p_ops:4284490000, p_all:1999290000, p_9w:301300000 },
+    RS:{ t_ops:897180000, t_s:15850000, t_r:10994820, p_ops:405592000, p_all:315267000, p_9w:10290000 },
+    SP:{ t_ops:396870000, t_s:6430000, t_r:5006080, p_ops:424700000, p_all:233720000, p_9w:10150000 },
+    PT:{ t_ops:349370000, t_s:25740000, t_r:19698550, p_ops:497880000, p_all:163060000, p_9w:8940000 },
+    OP:{ t_ops:319230000, t_s:4820000, t_r:3653800, p_ops:0, p_all:0, p_9w:0 },
+    JK:{ t_ops:255300000, t_s:2070000, t_r:1786590, p_ops:0, p_all:0, p_9w:0 },
+    DH:{ t_ops:254610000, t_s:29760000, t_r:22448700, p_ops:180430000, p_all:84870000, p_9w:29310000 },
+    KP:{ t_ops:236800000, t_s:8930000, t_r:6683760, p_ops:0, p_all:0, p_9w:0 },
+    TS:{ t_ops:219286000, t_s:5688000, t_r:4544750, p_ops:429212000, p_all:293316000, p_9w:10340000 },
+    DJ:{ t_ops:172060000, t_s:17220000, t_r:17700500, p_ops:0, p_all:0, p_9w:0 },
+  },
+};
+
+// ── 24S (2년차 이월) — 비교: 전년 23S ──
+const D24 = {
+  label:'24S', cmp:'전년 23S', color:'#f97316',
+  t_ops: 3949468000,
+  t_weekly:[8360000, 9318000, 12308000, 18518000, 37526000, 16710000, 25672000, 63694000, 109884000, 149465000],
+  t_weekly_r:[3125900, 5482280, 7537320, 8899400, 17992900, 8680900, 10711200, 26894060, 44796580, 61672800],
+  p_ops: 4359863000,
+  p_weekly:[740000, 6799000, 53384000, 43539000, 52875000, 37232000, 65795000, 71128000, 68923000, 67050000, 49280000, 50274000, 77304000, 100682000, 71898000, 73439000, 55648000, 54818000, 51979000, 67790000, 138447000, 128279000, 116452000, 88418000, 148023000, 210254000, 13120000, 44352000, 50050000, 56462000, 58318000, 24052000, 53298000, 31003000, 19569000, 56005000, 25279000, 26429000, 32705000, 13764000, 33158000, 16826000, 14880000, 13303000, 8176000, 9127000, 13535000, 5894000, 3399000, 10104000, 6550000, 8280000, 7040000],
+  p_sync_n:[740000, 6799000, 53384000, 43539000, 52875000, 37232000, 65795000, 71128000, 68923000, 67050000],
+  gen:{
+    W:{ t_ops:1090603000, t_sales:205080000, t_rev:97006300, p_ops:2651913000, p_sales:1717778000, p_9w:345155000 },
+    M:{ t_ops:2776299000, t_sales:234220000, t_rev:93976930, p_ops:1656550000, p_sales:840410000, p_9w:111060000 },
+    X:{ t_ops:82566000, t_sales:12155000, t_rev:4810110, p_ops:51400000, p_sales:46940000, p_9w:11250000 },
+  },
+  cat:{
+    WJ:{ t_ops:2257450000, t_s:315890000, t_r:132847330, p_ops:1192110000, p_all:610920000, p_9w:137640000 },
+    PT:{ t_ops:334210000, t_s:9960000, t_r:4798000, p_ops:173730000, p_all:88580000, p_9w:12410000 },
+    TR:{ t_ops:209710000, t_s:29410000, t_r:12038200, p_ops:0, p_all:0, p_9w:0 },
+    PD:{ t_ops:198900000, t_s:29010000, t_r:10242400, p_ops:0, p_all:0, p_9w:0 },
+    SP:{ t_ops:189930000, t_s:3200000, t_r:1648800, p_ops:343180000, p_all:161210000, p_9w:7890000 },
+    TS:{ t_ops:134026000, t_s:4890000, t_r:2542000, p_ops:272050000, p_all:206530000, p_9w:22910000 },
+    TP:{ t_ops:110730000, t_s:12490000, t_r:5134900, p_ops:0, p_all:0, p_9w:0 },
+    DH:{ t_ops:89220000, t_s:15840000, t_r:12118600, p_ops:351680000, p_all:262910000, p_9w:110040000 },
+    RS:{ t_ops:87526000, t_s:5050000, t_r:2114070, p_ops:0, p_all:0, p_9w:0 },
+    WS:{ t_ops:72030000, t_s:5790000, t_r:2444400, p_ops:0, p_all:0, p_9w:0 },
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 계산
+// ══════════════════════════════════════════════════════
+const bc = arr => { let c=0; return arr.map(v=>{ c+=Math.max(v,0); return c; }); };
+
+function calcSeason(d) {
+  const scale = d.t_ops / d.p_ops;
+  const n = d.t_weekly.length;
+  const t_sync = d.t_weekly.reduce((a,b)=>a+Math.max(b,0),0);
+  const p_sync = d.p_sync_n.reduce((a,b)=>a+Math.max(b,0),0);
+  const est = [...d.t_weekly, ...d.p_weekly.slice(n).map(v=>Math.max(v,0)*scale)];
+  const p_cumul = bc(d.p_weekly);
+  const t_cumul = bc(d.t_weekly);
+  const e_cumul = bc(est);
+  const p_total = d.p_weekly.reduce((a,b)=>a+Math.max(b,0),0);
+  // 전년 연말 잔여 (전년 운영재고 - 전년 전체판매)
+  const p_yearend_remain = d.p_ops - p_total;
+  // 올해 예측 연말 잔여
+  const t_est_total = e_cumul[52];
+  const t_yearend_remain = d.t_ops - t_est_total;
+  // 10주 이후 YoY 판매 비교
+  const p_after_sync = d.p_weekly.slice(n).reduce((a,b)=>a+Math.max(b,0),0);
+  const t_after_sync = est.slice(n).reduce((a,b)=>a+Math.max(b,0),0);
+  const yoy_sales_diff = t_after_sync - p_after_sync;           // 절대차이
+  const yoy_sales_rate = p_after_sync>0 ? t_after_sync/p_after_sync : 1; // 배율
+  return { scale, t_sync, p_sync, est, p_cumul, t_cumul, e_cumul, p_total,
+           p_yearend_remain, t_yearend_remain, t_est_total,
+           p_after_sync, t_after_sync, yoy_sales_diff, yoy_sales_rate,
+           yoy: (t_sync/d.t_ops)/(p_sync/d.p_ops) };
+}
+
+const C25 = calcSeason(D25);
+const C24 = calcSeason(D24);
+
+// 전체 합산
+const ALL_OPS   = D25.t_ops + D24.t_ops;
+const ALL_T9    = D25.t_weekly.map((v,i)=>v+D24.t_weekly[i]);
+const ALL_EST   = C25.est.map((v,i)=>v+(C24.est[i]||0));
+const ALL_PREV  = D25.p_weekly.map((v,i)=>v+D24.p_weekly[i]);
+const ALL_EC    = bc(ALL_EST);
+const ALL_PC    = bc(ALL_PREV);
+const ALL_T9CUM = bc(ALL_T9);
+const ALL_PREV_OPS = D25.p_ops + D24.p_ops;
+const ALL_PSYNC = D25.p_sync_n.map((v,i)=>v+D24.p_sync_n[i]);
+const ALL_PSYNC_TOT = ALL_PSYNC.reduce((a,b)=>a+b,0);
+const ALL_TSYNC_TOT = ALL_T9.reduce((a,b)=>a+b,0);
+const ALL_P_YEAREND_REMAIN = C25.p_yearend_remain + C24.p_yearend_remain;
+const ALL_T_YEAREND_REMAIN = C25.t_yearend_remain + C24.t_yearend_remain;
+const ALL_P_TOTAL = C25.p_total + C24.p_total;
+const ALL_T_EST_TOTAL = C25.t_est_total + C24.t_est_total;
+const ALL_YOY_DIFF = C25.yoy_sales_diff + C24.yoy_sales_diff;
+const ALL_P_AFTER = C25.p_after_sync + C24.p_after_sync;
+// 기말재고 합산 (전년 기말재고 = 올해 기초재고 원천)
+const PREV_YEAREND_STOCK_ALL = YEAREND_STOCK.PREV_24S + YEAREND_STOCK.PREV_23S; // 전년 실제 연말 잔여 합계 58.2억
+const THIS_YEAREND_STOCK_ALL = YEAREND_STOCK.THIS_25S + YEAREND_STOCK.THIS_24S;
+
+// ════════════════════════════════════════════════════════
+// 다운탑 예측 데이터 (품목×성별 세그먼트별 스케일)
+// ════════════════════════════════════════════════════════
+const DT25_EC = [7940000,17760000,43720000,62050000,87470000,108198000,128038000,182948000,227388000,304648000,374154738,459181084,543835203,625645683,748506146,828932430,884922662,943351787,998902742,1072758820,1162673543,1249829698,1347298322,1423250920,1507378665,1659219654,1698275231,1756155011,1807877575,1852136162,1911991197,1955054347,2005005086,2036989134,2067347040,2112495576,2141704495,2201606915,2226494437,2248730537,2283145780,2296830846,2327096116,2341202232,2353928049,2373641032,2384111554,2392364640,2393275011,2401450768,2410787900,2418166441,2421106063];
+const DT24_EC = [8640000,19048000,32046000,51404000,89040000,106890000,133290000,196984000,306868000,456333000,500795000,542949268,607795866,669929804,732901700,778843099,825640002,856240041,890347878,921150270,1008826405,1085918879,1165521092,1213788553,1293359037,1474721644,1478948450,1516210335,1554209001,1570550021,1592723358,1610272504,1628387861,1648455085,1659719409,1669316221,1682472587,1692908468,1726257433,1730732862,1764215204,1775892742,1785858459,1791805716,1794902027,1801879151,1806932713,1813156470,1820113597,1830482818,1835250777,1845898827,1852677755];
+const DT_ALL_EC = DT25_EC.map((v,i)=>v+DT24_EC[i]);
+const DT25_OPS = 6854586000;
+const DT24_OPS = 3949468000;
+const DT25_SEGS = [{"cat": "WJ", "gen": "W", "t": 2288320000, "p": 1773230000, "sc": 1.29, "flag": "OK"}, {"cat": "RS", "gen": "W", "t": 799770000, "p": 31752000, "sc": 0.824, "flag": "NEW"}, {"cat": "WJ", "gen": "M", "t": 715780000, "p": 2511260000, "sc": 0.285, "flag": "OK"}, {"cat": "OP", "gen": "W", "t": 319230000, "p": 37170000, "sc": 0.824, "flag": "NEW"}, {"cat": "SP", "gen": "W", "t": 309230000, "p": 182960000, "sc": 1.69, "flag": "OK"}, {"cat": "PT", "gen": "W", "t": 257020000, "p": 149610000, "sc": 1.718, "flag": "OK"}, {"cat": "JK", "gen": "M", "t": 255300000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "DH", "gen": "W", "t": 254610000, "p": 180430000, "sc": 1.411, "flag": "OK"}, {"cat": "KP", "gen": "W", "t": 184410000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "DJ", "gen": "W", "t": 172060000, "p": 2580000, "sc": 0.824, "flag": "NEW"}, {"cat": "TS", "gen": "W", "t": 158006000, "p": 84610000, "sc": 0.824, "flag": "NEW"}, {"cat": "SS", "gen": "W", "t": 116600000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "RS", "gen": "M", "t": 97260000, "p": 184240000, "sc": 0.528, "flag": "OK"}, {"cat": "PT", "gen": "M", "t": 92350000, "p": 348270000, "sc": 0.265, "flag": "OK"}, {"cat": "SP", "gen": "M", "t": 87640000, "p": 241740000, "sc": 0.363, "flag": "OK"}, {"cat": "WS", "gen": "M", "t": 84710000, "p": 96000000, "sc": 0.824, "flag": "NEW"}, {"cat": "VT", "gen": "W", "t": 68110000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "TS", "gen": "M", "t": 61280000, "p": 344602000, "sc": 0.178, "flag": "OK"}, {"cat": "TG", "gen": "W", "t": 57750000, "p": 23210000, "sc": 0.824, "flag": "NEW"}, {"cat": "KP", "gen": "M", "t": 52390000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "VT", "gen": "M", "t": 51480000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "SK", "gen": "W", "t": 50160000, "p": 68190000, "sc": 0.824, "flag": "NEW"}, {"cat": "KC", "gen": "M", "t": 49000000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "MT", "gen": "M", "t": 46750000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "KC", "gen": "W", "t": 45150000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "RL", "gen": "W", "t": 38990000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "MT", "gen": "W", "t": 37750000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "CR", "gen": "W", "t": 30160000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "SL", "gen": "W", "t": 27750000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "TL", "gen": "W", "t": 16790000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "SC", "gen": "W", "t": 15130000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "HT", "gen": "W", "t": 13650000, "p": 0, "sc": 0.824, "flag": "NEW"}, {"cat": "DV", "gen": "M", "t": 0, "p": 124890000, "sc": 0.0, "flag": "ZERO"}, {"cat": "BR", "gen": "W", "t": 0, "p": 20130000, "sc": 0.0, "flag": "ZERO"}, {"cat": "TB", "gen": "W", "t": 0, "p": 13260000, "sc": 0.0, "flag": "ZERO"}, {"cat": "BK", "gen": "X", "t": 0, "p": 40020000, "sc": 0.0, "flag": "ZERO"}, {"cat": "TR", "gen": "W", "t": 0, "p": 185530000, "sc": 0.0, "flag": "ZERO"}, {"cat": "TB", "gen": "M", "t": 0, "p": 39140000, "sc": 0.0, "flag": "ZERO"}, {"cat": "CP", "gen": "X", "t": 0, "p": 30478000, "sc": 0.0, "flag": "ZERO"}, {"cat": "RS", "gen": "X", "t": 0, "p": 189600000, "sc": 0.0, "flag": "ZERO"}, {"cat": "TR", "gen": "M", "t": 0, "p": 469240000, "sc": 0.0, "flag": "ZERO"}, {"cat": "HT", "gen": "X", "t": 0, "p": 46930000, "sc": 0.0, "flag": "ZERO"}, {"cat": "PD", "gen": "W", "t": 0, "p": 60040000, "sc": 0.0, "flag": "ZERO"}, {"cat": "LG", "gen": "W", "t": 0, "p": 68100000, "sc": 0.0, "flag": "ZERO"}, {"cat": "CR", "gen": "X", "t": 0, "p": 96330000, "sc": 0.0, "flag": "ZERO"}, {"cat": "PD", "gen": "M", "t": 0, "p": 354450000, "sc": 0.0, "flag": "ZERO"}, {"cat": "SO", "gen": "X", "t": 0, "p": 482000, "sc": 0.0, "flag": "ZERO"}, {"cat": "TP", "gen": "W", "t": 0, "p": 118370000, "sc": 0.0, "flag": "ZERO"}, {"cat": "HS", "gen": "X", "t": 0, "p": 73510000, "sc": 0.0, "flag": "ZERO"}, {"cat": "TP", "gen": "M", "t": 0, "p": 127090000, "sc": 0.0, "flag": "ZERO"}];
+const DT24_SEGS = [{"cat": "WJ", "gen": "M", "t": 1658720000, "p": 690220000, "sc": 2.403, "flag": "OK"}, {"cat": "WJ", "gen": "W", "t": 598730000, "p": 501890000, "sc": 1.193, "flag": "OK"}, {"cat": "PT", "gen": "M", "t": 244880000, "p": 149940000, "sc": 1.633, "flag": "OK"}, {"cat": "PD", "gen": "M", "t": 195740000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "TR", "gen": "M", "t": 163120000, "p": 36570000, "sc": 0.906, "flag": "NEW"}, {"cat": "SP", "gen": "M", "t": 135600000, "p": 118950000, "sc": 1.14, "flag": "OK"}, {"cat": "TS", "gen": "M", "t": 117996000, "p": 119940000, "sc": 0.984, "flag": "OK"}, {"cat": "PT", "gen": "W", "t": 89330000, "p": 23790000, "sc": 0.906, "flag": "NEW"}, {"cat": "DH", "gen": "W", "t": 89220000, "p": 351680000, "sc": 0.254, "flag": "OK"}, {"cat": "WS", "gen": "M", "t": 72030000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "DV", "gen": "M", "t": 69690000, "p": 45030000, "sc": 0.906, "flag": "NEW"}, {"cat": "TP", "gen": "M", "t": 66780000, "p": 19800000, "sc": 0.906, "flag": "NEW"}, {"cat": "SP", "gen": "W", "t": 54330000, "p": 224230000, "sc": 0.242, "flag": "OK"}, {"cat": "TR", "gen": "W", "t": 46590000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "LG", "gen": "W", "t": 44740000, "p": 27900000, "sc": 0.906, "flag": "NEW"}, {"cat": "RS", "gen": "M", "t": 44523000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "TP", "gen": "W", "t": 43950000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "RS", "gen": "X", "t": 35800000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "SK", "gen": "W", "t": 33600000, "p": 222890000, "sc": 0.151, "flag": "OK"}, {"cat": "OP", "gen": "W", "t": 32130000, "p": 79360000, "sc": 0.906, "flag": "NEW"}, {"cat": "HS", "gen": "X", "t": 23840000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "TS", "gen": "W", "t": 16030000, "p": 152110000, "sc": 0.105, "flag": "OK"}, {"cat": "BR", "gen": "W", "t": 15620000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "TG", "gen": "W", "t": 9990000, "p": 10530000, "sc": 0.906, "flag": "NEW"}, {"cat": "CR", "gen": "X", "t": 9390000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "TB", "gen": "M", "t": 7220000, "p": 77840000, "sc": 0.906, "flag": "NEW"}, {"cat": "RS", "gen": "W", "t": 7203000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "CP", "gen": "X", "t": 5096000, "p": 1820000, "sc": 0.906, "flag": "NEW"}, {"cat": "BK", "gen": "X", "t": 4350000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "HT", "gen": "X", "t": 3760000, "p": 11970000, "sc": 0.906, "flag": "NEW"}, {"cat": "TB", "gen": "W", "t": 3400000, "p": 152040000, "sc": 0.022, "flag": "OK"}, {"cat": "PD", "gen": "W", "t": 3160000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "DJ", "gen": "W", "t": 2580000, "p": 208360000, "sc": 0.012, "flag": "OK"}, {"cat": "SO", "gen": "X", "t": 330000, "p": 0, "sc": 0.906, "flag": "NEW"}, {"cat": "HD", "gen": "W", "t": 0, "p": 78060000, "sc": 0.0, "flag": "ZERO"}, {"cat": "RT", "gen": "W", "t": 0, "p": 93550000, "sc": 0.0, "flag": "ZERO"}, {"cat": "HD", "gen": "M", "t": 0, "p": 36120000, "sc": 0.0, "flag": "ZERO"}, {"cat": "KU", "gen": "W", "t": 0, "p": 123660000, "sc": 0.0, "flag": "ZERO"}, {"cat": "RT", "gen": "M", "t": 0, "p": 66300000, "sc": 0.0, "flag": "ZERO"}, {"cat": "KU", "gen": "M", "t": 0, "p": 110900000, "sc": 0.0, "flag": "ZERO"}, {"cat": "SC", "gen": "W", "t": 0, "p": 27170000, "sc": 0.0, "flag": "ZERO"}, {"cat": "SO", "gen": "W", "t": 0, "p": 36273000, "sc": 0.0, "flag": "ZERO"}, {"cat": "TA", "gen": "X", "t": 0, "p": 9860000, "sc": 0.0, "flag": "ZERO"}, {"cat": "KS", "gen": "W", "t": 0, "p": 64190000, "sc": 0.0, "flag": "ZERO"}, {"cat": "MT", "gen": "W", "t": 0, "p": 61230000, "sc": 0.0, "flag": "ZERO"}, {"cat": "DJ", "gen": "M", "t": 0, "p": 125590000, "sc": 0.0, "flag": "ZERO"}, {"cat": "MT", "gen": "M", "t": 0, "p": 59350000, "sc": 0.0, "flag": "ZERO"}, {"cat": "SN", "gen": "W", "t": 0, "p": 8190000, "sc": 0.0, "flag": "ZERO"}, {"cat": "SC", "gen": "X", "t": 0, "p": 27750000, "sc": 0.0, "flag": "ZERO"}, {"cat": "HT", "gen": "W", "t": 0, "p": 10500000, "sc": 0.0, "flag": "ZERO"}, {"cat": "DV", "gen": "W", "t": 0, "p": 194310000, "sc": 0.0, "flag": "ZERO"}];
+
+// ── 소진율×GAP 시나리오 세그먼트 (전년소진율 × 올해/전년 10주 페이스 비율)
+const GAP_SEGS_25 = [{"cat": "CR", "gen": "M", "t_ops": 30160000, "pred": 0.4965, "p_disp": 0.3248, "gap": 1.5285}, {"cat": "DH", "gen": "W", "t_ops": 254610000, "pred": 0.3548, "p_disp": 0.4934, "gap": 0.7191}, {"cat": "DJ", "gen": "W", "t_ops": 133360000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "DJ", "gen": "X", "t_ops": 38700000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "HT", "gen": "W", "t_ops": 13650000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "JK", "gen": "W", "t_ops": 255300000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "KC", "gen": "M", "t_ops": 94150000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "KP", "gen": "M", "t_ops": 174920000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "KP", "gen": "W", "t_ops": 61880000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "MT", "gen": "W", "t_ops": 84500000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "OP", "gen": "M", "t_ops": 175690000, "pred": 0.0933, "p_disp": 0.1356, "gap": 0.6884}, {"cat": "OP", "gen": "W", "t_ops": 143540000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "PT", "gen": "M", "t_ops": 75390000, "pred": 0.5599, "p_disp": 0.4677, "gap": 1.1969}, {"cat": "PT", "gen": "W", "t_ops": 273980000, "pred": 0.9, "p_disp": 0.3033, "gap": 5.9441}, {"cat": "RL", "gen": "W", "t_ops": 38990000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "RS", "gen": "M", "t_ops": 517620000, "pred": 0.6653, "p_disp": 0.78, "gap": 0.8529}, {"cat": "RS", "gen": "W", "t_ops": 379560000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "SC", "gen": "M", "t_ops": 15130000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "SK", "gen": "W", "t_ops": 50160000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "SL", "gen": "M", "t_ops": 27750000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "SP", "gen": "M", "t_ops": 305570000, "pred": 0.4491, "p_disp": 0.5568, "gap": 0.8066}, {"cat": "SP", "gen": "W", "t_ops": 91300000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "SS", "gen": "W", "t_ops": 116600000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "TG", "gen": "M", "t_ops": 9800000, "pred": 0.0, "p_disp": 0.5588, "gap": null}, {"cat": "TG", "gen": "W", "t_ops": 47950000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "TL", "gen": "W", "t_ops": 16790000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "TS", "gen": "M", "t_ops": 219286000, "pred": 0.7959, "p_disp": 0.6911, "gap": 1.1515}, {"cat": "VT", "gen": "X", "t_ops": 119590000, "pred": 0.3903, "p_disp": null, "gap": null}, {"cat": "WJ", "gen": "M", "t_ops": 640700000, "pred": 0.1928, "p_disp": 0.5421, "gap": 0.3557}, {"cat": "WJ", "gen": "W", "t_ops": 2363400000, "pred": 0.3081, "p_disp": 0.4611, "gap": 0.6682}, {"cat": "WS", "gen": "M", "t_ops": 84710000, "pred": 0.1661, "p_disp": 0.2659, "gap": 0.6248}];
+const GAP_SEGS_24 = [{"cat": "BR", "gen": "W", "t_ops": 15620000, "pred": 0.5688, "p_disp": null, "gap": null}, {"cat": "CP", "gen": "M", "t_ops": 5096000, "pred": 0.5688, "p_disp": null, "gap": null}, {"cat": "CR", "gen": "M", "t_ops": 9390000, "pred": 0.5688, "p_disp": null, "gap": null}, {"cat": "DH", "gen": "W", "t_ops": 89220000, "pred": 0.4892, "p_disp": 0.7683, "gap": 0.6368}, {"cat": "DV", "gen": "W", "t_ops": 69690000, "pred": 0.1846, "p_disp": 0.5085, "gap": 0.3631}, {"cat": "HS", "gen": "M", "t_ops": 23840000, "pred": 0.5688, "p_disp": null, "gap": null}, {"cat": "LG", "gen": "W", "t_ops": 44740000, "pred": 0.3483, "p_disp": 0.4032, "gap": 0.8638}, {"cat": "OP", "gen": "M", "t_ops": 32130000, "pred": 0.2111, "p_disp": 0.7049, "gap": 0.2994}, {"cat": "PD", "gen": "W", "t_ops": 198900000, "pred": 0.5688, "p_disp": null, "gap": null}, {"cat": "PT", "gen": "M", "t_ops": 96230000, "pred": 0.5688, "p_disp": null, "gap": null}, {"cat": "PT", "gen": "W", "t_ops": 237980000, "pred": 0.2103, "p_disp": 0.5523, "gap": 0.3808}, {"cat": "RS", "gen": "M", "t_ops": 87526000, "pred": 0.5688, "p_disp": null, "gap": null}, {"cat": "SK", "gen": "M", "t_ops": 33600000, "pred": 0.3136, "p_disp": 0.6901, "gap": 0.4544}, {"cat": "SP", "gen": "M", "t_ops": 189930000, "pred": 0.3228, "p_disp": 0.579, "gap": 0.5575}, {"cat": "TB", "gen": "M", "t_ops": 10620000, "pred": 0.9, "p_disp": 0.5098, "gap": 2.0187}, {"cat": "TG", "gen": "M", "t_ops": 9990000, "pred": 0.417, "p_disp": 0.8148, "gap": 0.5118}, {"cat": "TP", "gen": "M", "t_ops": 11000000, "pred": 0.5688, "p_disp": null, "gap": null}, {"cat": "TP", "gen": "W", "t_ops": 99730000, "pred": 0.9, "p_disp": 0.8889, "gap": 1.0793}, {"cat": "TR", "gen": "M", "t_ops": 58330000, "pred": 0.5688, "p_disp": null, "gap": null}, {"cat": "TR", "gen": "W", "t_ops": 151380000, "pred": 0.9, "p_disp": 0.9057, "gap": 1.7429}, {"cat": "TS", "gen": "M", "t_ops": 134026000, "pred": 0.3266, "p_disp": 0.7818, "gap": 0.4178}, {"cat": "WJ", "gen": "M", "t_ops": 321120000, "pred": 0.4043, "p_disp": 0.7088, "gap": 0.5704}, {"cat": "WJ", "gen": "W", "t_ops": 1936330000, "pred": 0.67, "p_disp": 0.5278, "gap": 1.2694}, {"cat": "WS", "gen": "M", "t_ops": 72030000, "pred": 0.5688, "p_disp": null, "gap": null}];
+// GAP 연말 예측 누적값 (전년 주차패턴 × GAP 소진율)
+const GAP25_TOTAL = 26420000;  // 25S GAP 예측판매
+const GAP24_TOTAL = 22660000;  // 24S GAP 예측판매
+
+
+// ══════════════════════════════════════════════════════
+// 유틸
+// ══════════════════════════════════════════════════════
+const 억  = n => `${(n/1e8).toFixed(1)}억`;
+const 억2 = n => `${(n/1e8).toFixed(2)}억`;
+const pct = (s,o) => o>0?`${(s/o*100).toFixed(1)}%`:'-';
+const pctN= (s,o) => o>0?s/o*100:0;
+// KPI compare 헬퍼 — 부호 +/△, 색상 단일화
+const cmp = (val, base, color, label) => ({
+  color,
+  arrow: val>=base ? '+' : '△',
+  text: `${label} ${억(base)} 대비 ${val>=base?'+':''}${((val/base-1)*100).toFixed(1)}%`
+});
+
+const C = {
+  bg:'#080d18', card:'#0e1523', card2:'#131d2e', border:'#1a2840',
+  text:'#ffffff', muted:'#8faec8', accent:'#f97316',
+  s25:'#38bdf8', s24:'#f97316', prev:'#7a9ab8', all:'#a78bfa',
+  W:'#f472b6', M:'#60a5fa', X:'#94a3b8',
+  good:'#34d399', warn:'#fbbf24', bad:'#f87171',
+};
+
+// ══════════════════════════════════════════════════════
+// 서브 컴포넌트
+// ══════════════════════════════════════════════════════
+const Tip = ({active,payload,label}) => {
+  if(!active||!payload?.length) return null;
+  return (
+    <div style={{background:'#0a1020',border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 14px',fontSize:12}}>
+      <p style={{color:C.muted,marginBottom:6,fontWeight:600}}>{label}</p>
+      {payload.filter(p=>p.value!=null&&p.value!==0).map((p,i)=>(
+        <p key={i} style={{color:p.color||C.text,margin:'2px 0'}}>
+          {p.name}: <strong>{typeof p.value==='number'?(p.value/1e8).toFixed(2)+'억':p.value}</strong>
+        </p>
+      ))}
+    </div>
+  );
+};
+
+const Tab = ({active,onClick,children,color}) => (
+  <button onClick={onClick} style={{
+    padding:'7px 16px',borderRadius:6,border:'none',cursor:'pointer',fontSize:12,fontWeight:700,
+    background:active?(color||C.accent):'transparent',
+    color:active?'#fff':C.muted,transition:'all .2s'
+  }}>{children}</button>
+);
+
+const KPI = ({label,value,sub,badge,color=C.text,compare}) => (
+  <div style={{background:C.card,borderRadius:10,padding:'14px 18px',border:`1px solid ${C.border}`}}>
+    <p style={{color:C.muted,fontSize:10,margin:'0 0 5px',textTransform:'uppercase',letterSpacing:.8}}>{label}</p>
+    <p style={{color,fontSize:20,fontWeight:800,margin:0}}>{value}</p>
+    {compare&&<p style={{margin:'4px 0 0',fontSize:11,fontWeight:600,color:compare.color}}>{compare.arrow} {compare.text}</p>}
+    {sub&&<p style={{color:C.muted,fontSize:10,margin:'3px 0 0'}}>{sub}</p>}
+    {badge&&<span style={{display:'inline-block',marginTop:5,padding:'2px 8px',borderRadius:10,fontSize:10,fontWeight:700,background:`${badge.c}22`,color:badge.c}}>{badge.t}</span>}
+  </div>
+);
+
+// 시즌 토글 버튼
+const SeasonToggle = ({view,setView}) => (
+  <div style={{display:'flex',gap:3,background:C.card2,borderRadius:8,padding:4,border:`1px solid ${C.border}`,width:'fit-content',marginBottom:14}}>
+    <Tab active={view==='ALL'} onClick={()=>setView('ALL')} color={C.all}>전체</Tab>
+    <Tab active={view==='25S'} onClick={()=>setView('25S')} color={C.s25}>25S (1년차)</Tab>
+    <Tab active={view==='24S'} onClick={()=>setView('24S')} color={C.s24}>24S (2년차)</Tab>
+  </div>
+);
+
+// ScenarioToggle
+const SCENARIOS = [
+  {key:'base',        label:'기본 추정',           color:'#f97316'},
+  {key:'detail',      label:'품목/성별 세부추정',  color:'#a78bfa'},
+  {key:'gap',         label:'소진율×페이스',       color:'#22d3ee'},
+  {key:'optimistic',  label:'낙관 (+10%p)',        color:'#34d399'},
+  {key:'conservative',label:'보수 (-10%p)',        color:'#f87171'},
+  {key:'closure',     label:'폐점 반영',           color:'#fb923c'},
+];
+const ScenarioToggle = ({sc, setSc}) => (
+  <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:14}}>
+    <span style={{fontSize:10,color:'#8faec8',fontWeight:600,marginRight:4}}>소진 시나리오</span>
+    <div style={{display:'flex',gap:3,background:'#131d2e',borderRadius:8,padding:3,border:'1px solid #1a2840'}}>
+      {SCENARIOS.map(({key,label,color})=>(
+        <button key={key} onClick={()=>setSc(key)} style={{
+          padding:'5px 13px',borderRadius:6,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,
+          background:sc===key?color:'transparent',
+          color:sc===key?'#fff':'#8faec8',transition:'all .15s'
+        }}>{label}</button>
+      ))}
+    </div>
+  </div>
+);
+
+const SCENARIO_DESC = {
+  base:         {color:'#f97316', text:'전년 주차패턴을 올해 운영재고 규모에 맞게 전체 스케일 적용'},
+  detail:       {color:'#a78bfa', text:'품목×성별 세그먼트별 개별 스케일 적용 (전년 없는 세그먼트는 평균 스케일)'},
+  optimistic:   {color:'#34d399', text:'품목/성별 세부추정 기준 + 10%p (낙관적 판매 시나리오)'},
+  conservative: {color:'#f87171', text:'품목/성별 세부추정 기준 − 10%p (보수적 판매 시나리오)'},
+  closure:      {color:'#fb923c', text:'품목/성별 세부추정 기준 — 여주·제주 신세계 폐점 — 3/8기준 매출 비중 34.9%, 3월 말 폐점으로 14주(4/6)부터 차감 적용'},
+};
+
+// PrevInsight
+const PrevInsight = ({items}) => (
+  <div style={{background:'rgba(56,189,248,0.06)',border:'1px solid rgba(56,189,248,0.2)',borderRadius:10,padding:'12px 16px',marginBottom:14}}>
+    <p style={{margin:'0 0 10px',fontSize:11,fontWeight:700,color:C.s25}}>📌 전년 이 시점에는…</p>
+    <div style={{display:'flex',flexDirection:'column',gap:7}}>
+      {items.map((item,i)=>(
+        <div key={i} style={{fontSize:11,color:C.muted,lineHeight:1.6,borderLeft:`2px solid rgba(56,189,248,0.3)`,paddingLeft:10}}>
+          <span style={{color:C.text,fontWeight:700}}>{item.label}:</span> {item.desc}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// 시즌 배지
+const SKBadge = ({sk}) => (
+  <span style={{padding:'1px 8px',borderRadius:10,fontSize:10,fontWeight:700,
+    background:sk==='25S'?`${C.s25}22`:sk==='24S'?`${C.s24}22`:`${C.all}22`,
+    color:sk==='25S'?C.s25:sk==='24S'?C.s24:C.all}}>{sk}</span>
+);
+
+// ══════════════════════════════════════════════════════
+// MAIN
+// ══════════════════════════════════════════════════════
+function App() {
+  const [mainTab, setMainTab] = useState('now');
+  const [skView,  setSkView]  = useState('ALL');
+  const [scenario, setScenario] = useState('base'); // base | optimistic | detail | conservative
+
+  // 현재 뷰에 따른 데이터 선택
+  const V = useMemo(()=>{
+    if(skView==='25S') return {
+      d:D25, calc:C25,
+      ops:D25.t_ops, p_ops:D25.p_ops,
+      t9:D25.t_weekly, t9r:D25.t_weekly_r,
+      pw:D25.p_weekly, ps9:D25.p_sync_n,
+      ec:C25.e_cumul,  pc:C25.p_cumul, tc:C25.t_cumul,
+      dt_ec:DT25_EC, dt_ops:DT25_OPS, dt_segs:DT25_SEGS,
+      label:'25S', color:C.s25,
+      p_yearend_remain: C25.p_yearend_remain,
+      t_yearend_remain: C25.t_yearend_remain,
+      dt_yearend_remain: DT25_OPS - DT25_EC[52],
+      p_total: C25.p_total, t_est_total: C25.t_est_total,
+      yoy_sales_diff: C25.yoy_sales_diff,
+      p_after_sync: C25.p_after_sync,
+      prev_yearend_stock: YEAREND_STOCK.PREV_24S,
+      this_yearend_stock: YEAREND_STOCK.THIS_25S,
+    };
+    if(skView==='24S') return {
+      d:D24, calc:C24,
+      ops:D24.t_ops, p_ops:D24.p_ops,
+      t9:D24.t_weekly, t9r:D24.t_weekly_r,
+      pw:D24.p_weekly, ps9:D24.p_sync_n,
+      ec:C24.e_cumul,  pc:C24.p_cumul, tc:C24.t_cumul,
+      dt_ec:DT24_EC, dt_ops:DT24_OPS, dt_segs:DT24_SEGS,
+      label:'24S', color:C.s24,
+      p_yearend_remain: C24.p_yearend_remain,
+      t_yearend_remain: C24.t_yearend_remain,
+      dt_yearend_remain: DT24_OPS - DT24_EC[52],
+      p_total: C24.p_total, t_est_total: C24.t_est_total,
+      yoy_sales_diff: C24.yoy_sales_diff,
+      p_after_sync: C24.p_after_sync,
+      prev_yearend_stock: YEAREND_STOCK.PREV_23S,
+      this_yearend_stock: YEAREND_STOCK.THIS_24S,
+    };
+    return {
+      d:null, calc:null,
+      ops:ALL_OPS, p_ops:ALL_PREV_OPS,
+      t9:ALL_T9, t9r:D25.t_weekly_r.map((v,i)=>v+D24.t_weekly_r[i]),
+      pw:ALL_PREV, ps9:ALL_PSYNC,
+      ec:ALL_EC, pc:ALL_PC, tc:ALL_T9CUM,
+      dt_ec:DT_ALL_EC, dt_ops:DT25_OPS+DT24_OPS, dt_segs:null,
+      label:'전체', color:C.all,
+      p_yearend_remain: ALL_P_YEAREND_REMAIN,
+      t_yearend_remain: ALL_T_YEAREND_REMAIN,
+      dt_yearend_remain: (DT25_OPS+DT24_OPS) - DT_ALL_EC[52],
+      p_total: ALL_P_TOTAL, t_est_total: ALL_T_EST_TOTAL,
+      yoy_sales_diff: ALL_YOY_DIFF,
+      p_after_sync: ALL_P_AFTER,
+      prev_yearend_stock: PREV_YEAREND_STOCK_ALL,
+      this_yearend_stock: THIS_YEAREND_STOCK_ALL,
+    };
+  },[skView]);
+
+  const tsync = V.t9.reduce((a,b)=>a+Math.max(b,0),0);
+  const psync = V.ps9.reduce((a,b)=>a+Math.max(b,0),0);
+  const yoy   = (tsync/V.ops)/(psync/V.p_ops);
+  const finalSales  = V.ec[52];
+  const finalRemain = V.ops - finalSales;
+
+  // ── 시나리오별 예측 커뮬 ──
+  // base: 기본추정(전년패턴), detail: 품목/성별 세부추정, optimistic: +10%p, conservative: -10%p
+  const S_EC = (()=>{
+    const n = V.t9.length;
+    const baseRate = V.t_est_total / V.ops;
+    if(scenario==='base')    return V.ec;
+    if(scenario==='detail')  return V.dt_ec;
+    const dtRate = V.dt_ec[52] / V.ops;
+    if(scenario==='optimistic') {
+      const adj   = Math.min(dtRate + 0.10, 1.0);
+      const scale = adj / (dtRate||baseRate);
+      return V.dt_ec.map((v,i)=> i<n ? v : Math.min(tsync + (v-tsync)*scale, V.ops));
+    }
+    if(scenario==='conservative') {
+      const adj   = Math.max(dtRate - 0.10, 0);
+      const scale = adj / (dtRate||baseRate);
+      return V.dt_ec.map((v,i)=> i<n ? v : Math.min(tsync + (v-tsync)*scale, V.ops));
+    }
+    if(scenario==='gap') {
+      // 전년 소진율 × 10주 페이스 GAP — 세그먼트별 pred 소진율 가중합
+      const gapSegs = V.label==='25S' ? GAP_SEGS_25 : V.label==='24S' ? GAP_SEGS_24
+        : [...GAP_SEGS_25, ...GAP_SEGS_24];
+      const gapSales = gapSegs.reduce((s,r)=>s+r.t_ops*r.pred, 0);
+      const gapOps   = gapSegs.reduce((s,r)=>s+r.t_ops, 0);
+      const gapRate  = gapOps > 0 ? gapSales/gapOps : 0;
+      const scale    = gapRate / (V.dt_ec[52]/V.ops || baseRate);
+      return V.dt_ec.map((v,i)=> i<n ? v : Math.min(tsync + (v-tsync)*scale, V.ops));
+    }
+    if(scenario==='closure') {
+      // 여주·제주 신세계 폐점 — 매출 비중 34.9%
+      // 14주(4/6, idx=13)부터 예측 판매액에 (1-0.349) 곱함
+      // 판매율에서 빼는 게 아니라 예측 판매 규모 자체를 줄이는 방식
+      const CLOSURE_START = 13;
+      const CLOSURE_MULT = 1 - 0.349; // 0.651
+      return V.dt_ec.map((v,i)=> {
+        if(i < n) return v; // 실측 구간: 그대로
+        // 14주 이전 예측: 세부추정 그대로
+        if(i < CLOSURE_START) return V.dt_ec[i];
+        // 14주 이후: 14주 시작점(tsync)에서 세부추정 증분에 0.651 곱함
+        const dtAtStart = V.dt_ec[CLOSURE_START-1]; // 13주까지 누적
+        return Math.min(dtAtStart + (v - dtAtStart) * CLOSURE_MULT, V.ops);
+      });
+    }
+    return V.ec;
+  })();
+
+  const S_SALES   = S_EC[52];                  // 시나리오 연말 총판매
+  const S_REMAIN  = V.ops - S_SALES;           // 시나리오 연말 잔여
+  const S_831     = S_EC[34];                  // 시나리오 8/31 누적
+
+  // 차트 데이터
+  const weekData = LABELS_53.map((wl,i)=>({
+    week: wl,
+    prev:  Math.max(V.pw[i]||0,0),
+    actual:i<V.t9.length ? Math.max(V.t9[i]||0,0) : null,
+    prev_c:V.pc[i],
+    est_c: V.ec[i],
+    dt_c:  V.dt_ec[i],
+    sc_c:  S_EC[i],
+    act_c: i<V.tc.length?V.tc[i]:null,
+    isNow: i===V.t9.length-1,
+  }));
+
+  // 월별
+  const PMAP = {'1-2월':[1,2],'3-4월':[3,4],'5-6월':[5,6],'7-8월':[7,8],'9월↑':[9,10,11,12]};
+  const getP = wl => { const m=parseInt(wl); for(const[p,ms] of Object.entries(PMAP)) if(ms.includes(m)) return p; return '9월↑'; };
+  const periodData = useMemo(()=>{
+    const r={}; Object.keys(PMAP).forEach(p=>r[p]={period:p,prev:0,est:0,act:0});
+    LABELS_53.forEach((wl,i)=>{
+      const p=getP(wl);
+      r[p].prev+=Math.max(V.pw[i]||0,0);
+      r[p].est +=(V.ec[i]-(i>0?V.ec[i-1]:0))||0;
+      if(i<V.t9.length) r[p].act+=Math.max(V.t9[i]||0,0);
+    });
+    return Object.values(r);
+  },[skView]);
+
+  const S={fontFamily:"'Pretendard','Apple SD Gothic Neo',sans-serif",color:C.text};
+
+  return (
+    <div style={{...S,background:C.bg,minHeight:'100vh',padding:'22px 26px'}}>
+
+      {/* 헤더 */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:18}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:3}}>
+            <div style={{width:4,height:24,background:C.accent,borderRadius:2}}/>
+            <h1 style={{margin:0,fontSize:19,fontWeight:900,letterSpacing:-.3}}>S시즌 이월재고 소진 분석</h1>
+            <span style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:'3px 11px',fontSize:10,color:C.muted}}>기준 2026-03-08</span>
+          </div>
+          <p style={{margin:0,color:C.muted,fontSize:11,paddingLeft:14}}>
+            올해 운영재고 <strong style={{color:C.s25}}>25S {억(D25.t_ops)}</strong> + <strong style={{color:C.s24}}>24S {억(D24.t_ops)}</strong> = <strong style={{color:C.text}}>{억(ALL_OPS)}</strong>
+            &nbsp;·&nbsp; 전년 대비 <strong style={{color:C.warn}}>{ALL_OPS>=ALL_PREV_OPS?'+':''}{((ALL_OPS/ALL_PREV_OPS-1)*100).toFixed(1).replace('-','△')}%</strong>
+          </p>
+        </div>
+        <div style={{display:'flex',gap:12,fontSize:11}}>
+          <div style={{textAlign:'center',background:C.card,borderRadius:8,padding:'8px 14px',border:`1px solid ${C.s25}44`}}>
+            <p style={{margin:'0 0 2px',color:C.s25,fontWeight:700}}>25S (1년차)</p>
+            <p style={{margin:0,color:C.text,fontSize:14,fontWeight:800}}>{억(D25.t_ops)}</p>
+            <p style={{margin:'2px 0 0',color:C.muted,fontSize:10}}>전년 24S {억(D25.p_ops)}</p>
+          </div>
+          <div style={{textAlign:'center',background:C.card,borderRadius:8,padding:'8px 14px',border:`1px solid ${C.s24}44`}}>
+            <p style={{margin:'0 0 2px',color:C.s24,fontWeight:700}}>24S (2년차)</p>
+            <p style={{margin:0,color:C.text,fontSize:14,fontWeight:800}}>{억(D24.t_ops)}</p>
+            <p style={{margin:'2px 0 0',color:C.muted,fontSize:10}}>전년 23S {억(D24.p_ops)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 시즌 토글 + 시나리오 토글 */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+        <SeasonToggle view={skView} setView={setSkView}/>
+        <ScenarioToggle sc={scenario} setSc={setScenario}/>
+      </div>
+      {/* 시나리오별 예측 방식 설명 */}
+      <div style={{marginBottom:14,padding:'7px 14px',borderRadius:8,background:'#0d1829',border:`1px solid ${SCENARIO_DESC[scenario]?.color}44`}}>
+        <span style={{fontSize:10,fontWeight:700,color:SCENARIO_DESC[scenario]?.color}}>📐 예측 방식 ({SCENARIOS.find(s=>s.key===scenario)?.label})</span>
+        <span style={{fontSize:10,color:'#8faec8',marginLeft:8}}>{SCENARIO_DESC[scenario]?.text}</span>
+      </div>
+
+      {/* KPI — 5카드 */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:16}}>
+
+        {/* 1. 운영재고 */}
+        <div style={{background:C.card,borderRadius:10,padding:'14px 18px',border:`1px solid ${C.border}`}}>
+          <p style={{color:C.muted,fontSize:10,margin:'0 0 5px',textTransform:'uppercase',letterSpacing:.8}}>운영재고</p>
+          <p style={{color:V.color,fontSize:20,fontWeight:800,margin:0}}>{억(V.ops)}</p>
+          <p style={{margin:'4px 0 0',fontSize:11,fontWeight:600,color:cmp(V.ops,V.p_ops,V.color,'전년').color}}>
+            {cmp(V.ops,V.p_ops,V.color,'전년').arrow} {cmp(V.ops,V.p_ops,V.color,'전년').text}
+          </p>
+          <p style={{color:C.muted,fontSize:10,margin:'3px 0 0'}}>전년 {억(V.p_ops)}</p>
+          <div style={{marginTop:8,borderTop:`1px solid ${C.border}`,paddingTop:7,display:'flex',flexDirection:'column',gap:3}}>
+            <p style={{margin:0,fontSize:9,color:C.muted,fontWeight:600}}>📦 재고 구성</p>
+            <p style={{margin:0,fontSize:9,color:C.muted}}>25년 기말재고 + 26년 입고</p>
+            <p style={{margin:0,fontSize:9,color:C.muted}}>26년 입고 현재 0 → 기말재고 = 운영재고</p>
+          </div>
+        </div>
+
+        {/* 2. 1~10주 누적판매 (실측) */}
+        <KPI label="1~10주 누적판매" value={억2(tsync)}
+          compare={cmp(tsync, psync, V.color, '전년 동기')}
+          sub={`판매율 ${pct(tsync,V.ops)} · 전년 동기 ${(psync/V.p_ops*100).toFixed(1)}%`}
+          badge={{t:'실데이터',c:V.color}}/>
+
+        {/* 3. ~08/31 누적 예상 — 시나리오 연동 */}
+        <KPI label="~08/31 누적 예상" value={억(S_831)}
+          compare={cmp(S_831, V.pc[34], V.color, '전년 동기')}
+          sub={`판매율 ${(S_831/V.ops*100).toFixed(1)}% · 전년 ${(V.pc[34]/V.p_ops*100).toFixed(1)}%`}/>
+
+        {/* 4. 연간 추정 총판매 — 시나리오 연동 */}
+        <KPI label="연간 추정 총판매" value={억(S_SALES)}
+          compare={cmp(S_SALES, V.p_total, V.color, '전년')}
+          sub={`판매율 ${(S_SALES/V.ops*100).toFixed(1)}% · 전년 ${(V.p_total/V.p_ops*100).toFixed(1)}%`}/>
+
+        {/* 5. 연말 잔여 예상 — 시나리오 연동 */}
+        <KPI label="연말 잔여 예상" value={억(S_REMAIN)}
+          compare={cmp(S_REMAIN, V.prev_yearend_stock, S_REMAIN<V.prev_yearend_stock?C.good:C.bad, '전년 기말재고')}
+          sub={`전년 기말재고 ${억(V.prev_yearend_stock)}`}
+          color={C.bad}/>
+
+      </div>
+
+      {/* 메인 탭 */}
+      <div style={{display:'flex',gap:3,marginBottom:16,background:C.card,borderRadius:8,padding:4,width:'fit-content',border:`1px solid ${C.border}`}}>
+        {[['now','📍 현재 페이스'],['forecast','📈 소진 예측'],['segment','👥 세그먼트'],['insight','💡 전년 인사이트']].map(([k,l])=>(
+          <Tab key={k} active={mainTab===k} onClick={()=>setMainTab(k)}>{l}</Tab>
+        ))}
+      </div>
+
+      {/* ── 현재 페이스 ── */}
+      {mainTab==='now' && (
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+          <div style={{gridColumn:'1/-1'}}>
+            {(()=>{
+              // 전년 주요 시점 수치 (시즌별)
+              const p_ops   = skView==='ALL'?ALL_PREV_OPS:skView==='25S'?D25.p_ops:D24.p_ops;
+              const pc      = skView==='ALL'?ALL_PC:skView==='25S'?C25.p_cumul:C24.p_cumul;
+              const p_10w   = skView==='ALL'?ALL_PSYNC_TOT:skView==='25S'?C25.p_sync:C24.p_sync;
+              const p_831   = pc[34];  // ~8/31 누적
+              const p_year  = pc[52];  // 연말 누적
+              const p_831r  = p_ops - p_831;   // 8/31 잔여
+              const p_yearr = p_ops - p_year;  // 연말 잔여
+              return (
+                <PrevInsight items={[
+                  {label:'전년 동기 10주',   desc:`${억2(p_10w)} / 판매율 ${(p_10w/p_ops*100).toFixed(1)}%`},
+                  {label:'전년 시즌마감(~8/31)', desc:`누적판매 ${억(p_831)} (${(p_831/p_ops*100).toFixed(1)}%) · 잔여재고 ${억(p_831r)} (${(p_831r/p_ops*100).toFixed(1)}%)`},
+                  {label:'전년 연말마감',    desc:`누적판매 ${억(p_year)} (${(p_year/p_ops*100).toFixed(1)}%) · 잔여재고 ${억(p_yearr)} (${(p_yearr/p_ops*100).toFixed(1)}%)`},
+                ]}/>
+              );
+            })()}
+          </div>
+
+          {/* 주차별 실판매 vs 전년 */}
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
+            <h3 style={{margin:'0 0 3px',fontSize:13}}>주차별 판매 — 올해 실적 vs 전년 동기 <SKBadge sk={skView}/></h3>
+            <p style={{margin:'0 0 12px',fontSize:10,color:C.muted}}>03/01 주 선행 판매 상승 중</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={WEEKS_ACT.map((wl,i)=>({
+                week:wl,
+                prev:Math.max(V.ps9[i]||0,0),
+                actual:Math.max(V.t9[i]||0,0),
+              }))} barCategoryGap="30%" barGap={3}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#0a1020"/>
+                <XAxis dataKey="week" tick={{fill:C.muted,fontSize:10}}/>
+                <YAxis tickFormatter={v=>(v/1e8).toFixed(2)} tick={{fill:C.muted,fontSize:9}} unit="억"/>
+                <Tooltip content={<Tip/>}/>
+                <Legend wrapperStyle={{color:C.muted,fontSize:11}}/>
+                <Bar dataKey="prev"   name="전년 동기" fill={C.prev}    radius={[3,3,0,0]}/>
+                <Bar dataKey="actual" name="올해 실적" fill={V.color}   radius={[3,3,0,0]}/>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* 누적 판매율 */}
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
+            <h3 style={{margin:'0 0 3px',fontSize:13}}>누적 판매율 추이 <SKBadge sk={skView}/></h3>
+            <p style={{margin:'0 0 12px',fontSize:10,color:C.muted}}>
+              {`올해 ${(tsync/V.ops*100).toFixed(1)}% — 전년 동기 ${(psync/V.p_ops*100).toFixed(1)}% 대비 ${((tsync/V.ops-psync/V.p_ops)*100).toFixed(1)}%p`}
+            </p>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={WEEKS_ACT.map((wl,i)=>({
+                week:wl,
+                prev_r: (V.pc[i]||0)/V.p_ops*100,
+                this_r: (V.tc[i]||0)/V.ops*100,
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#0a1020"/>
+                <XAxis dataKey="week" tick={{fill:C.muted,fontSize:10}}/>
+                <YAxis domain={[0,15]} unit="%" tick={{fill:C.muted,fontSize:9}}/>
+                <Tooltip formatter={v=>`${v.toFixed(2)}%`} contentStyle={{background:'#0a1020',border:`1px solid ${C.border}`}} labelStyle={{color:C.text}}/>
+                <Legend wrapperStyle={{color:C.muted,fontSize:11}}/>
+                <Line dataKey="prev_r" name="전년 누적판매율" stroke={C.prev}   strokeWidth={2} dot={false} strokeDasharray="5 3"/>
+                <Line dataKey="this_r" name="올해 누적판매율" stroke={V.color}  strokeWidth={2.5} dot={{fill:V.color,r:3}}/>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* 25S vs 24S 나란히 (전체 뷰에서만) */}
+          {skView==='ALL' && (
+            <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
+              <h3 style={{margin:'0 0 12px',fontSize:13}}>시즌별 10주 판매율 비교</h3>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+                {[{d:D25,calc:C25,color:C.s25},{d:D24,calc:C24,color:C.s24}].map(({d,calc,color})=>{
+                  const ts = d.t_weekly.reduce((a,b)=>a+b,0);
+                  const ps = d.p_sync_n.reduce((a,b)=>a+b,0);
+                  const tp = ts/d.t_ops*100; const pp = ps/d.p_ops*100;
+                  return (
+                    <div key={d.label} style={{background:C.card2,borderRadius:8,padding:14,borderTop:`3px solid ${color}`}}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+                        <span style={{color,fontWeight:800,fontSize:14}}>{d.label}</span>
+                        <span style={{color:C.muted,fontSize:11}}>{d.cmp}</span>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:10}}>
+                        {[['운영재고',억(d.t_ops)],['10주판매',억2(ts)],['판매율',`${tp.toFixed(1)}%`]].map(([l,v])=>(
+                          <div key={l}><p style={{margin:0,fontSize:9,color:C.muted}}>{l}</p><p style={{margin:0,fontSize:13,fontWeight:700,color}}>{v}</p></div>
+                        ))}
+                      </div>
+                      <div style={{background:'#0a1020',borderRadius:3,height:6,marginBottom:4}}>
+                        <div style={{width:`${Math.min(pp/15*100,100)}%`,height:'100%',background:C.prev,borderRadius:3,opacity:.5}}/>
+                      </div>
+                      <div style={{background:'#0a1020',borderRadius:3,height:6}}>
+                        <div style={{width:`${Math.min(tp/15*100,100)}%`,height:'100%',background:color,borderRadius:3}}/>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',marginTop:4,fontSize:9,color:C.muted}}>
+                        <span>전년 {pp.toFixed(1)}%</span><span style={{color}}>올해 {tp.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── 소진 예측 ── */}
+      {mainTab==='forecast' && (
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+
+          {/* 인사이트 배너 */}
+          <div style={{gridColumn:'1/-1'}}>
+            <PrevInsight items={[
+              {label:'예측 방식', desc:'품목×성별 세그먼트별 개별 스케일 — 각 품목의 재고 구성 변화를 반영한 세부 추정'},
+              {label:'스케일 기준', desc:'전년 운영재고 1억 미만 세그먼트는 전체 평균 스케일(NEW) 처리'},
+            ]}/>
+          </div>
+
+          {/* ── 누적 소진 곡선 ── */}
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
+              <div>
+                <h3 style={{margin:'0 0 3px',fontSize:13}}>누적 소진 예측 곡선 <SKBadge sk={skView}/></h3>
+                <p style={{margin:0,fontSize:10,color:C.muted}}>
+                  <span style={{color:V.color}}>━</span> 올해 실측 &nbsp;
+                  <span style={{color:'#a78bfa'}}>━ ─</span> 품목/성별 세부추정 &nbsp;
+                  <span style={{color:C.prev}}>─ ─</span> 전년 실적
+                </p>
+              </div>
+              {/* 연말 현 재고 요약 — 시나리오 연동 */}
+              <div style={{display:'flex',gap:10}}>
+                {[
+                  {label:'전년 기말재고', val:V.prev_yearend_stock, color:C.prev},
+                  {label:`현 재고 추정 (${SCENARIOS.find(s=>s.key===scenario)?.label})`, val:S_REMAIN, color:SCENARIOS.find(s=>s.key===scenario)?.color||C.warn},
+                ].map(({label,val,color})=>(
+                  <div key={label} style={{textAlign:'center',background:C.card2,borderRadius:8,padding:'7px 14px',border:`1px solid ${color}44`}}>
+                    <p style={{margin:'0 0 2px',fontSize:9,color:C.muted}}>{label}</p>
+                    <p style={{margin:0,fontSize:16,fontWeight:800,color}}>{억(val)}</p>
+                    <p style={{margin:'2px 0 0',fontSize:9,color:C.muted}}>{(val/V.ops*100).toFixed(1)}%</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <ResponsiveContainer width="100%" height={260}>
+              <ComposedChart data={weekData} margin={{left:10,right:10,top:8}}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#0a1020"/>
+                <XAxis dataKey="week" tick={{fill:C.muted,fontSize:9}} interval={3}/>
+                <YAxis tickFormatter={v=>(v/1e8).toFixed(0)} tick={{fill:C.muted,fontSize:9}} unit="억"/>
+                <Tooltip content={<Tip/>}/>
+                <ReferenceLine x="03/08" stroke={V.color}  strokeDasharray="5 3" label={{value:'현재',fill:V.color,fontSize:9,position:'insideTopRight'}}/>
+                <ReferenceLine x="06/29" stroke={C.accent} strokeDasharray="4 3" label={{value:'피크',fill:C.accent,fontSize:9,position:'insideTopRight'}}/>
+                <ReferenceLine x="08/31" stroke={C.muted}  strokeDasharray="3 3" label={{value:'마감',fill:C.muted,fontSize:9,position:'insideTopRight'}}/>
+                <Line dataKey="prev_c" name="전년 누적"    stroke={C.prev}   strokeWidth={1.5} dot={false} strokeDasharray="5 3" opacity={0.6}/>
+                <Line dataKey="act_c"  name="올해 실측"    stroke={V.color}  strokeWidth={3}   dot={false}/>
+                <Line dataKey="sc_c"   name={SCENARIOS.find(s=>s.key===scenario)?.label||'예측'} stroke={SCENARIOS.find(s=>s.key===scenario)?.color||C.warn} strokeWidth={2.5} dot={false} strokeDasharray="4 2"/>
+                <Line dataKey="dt_c"   name="품목/성별 세부추정"  stroke="#a78bfa"  strokeWidth={1.5} dot={false} strokeDasharray="2 3" opacity={scenario==='detail'?0:0.4}/>
+              </ComposedChart>
+            </ResponsiveContainer>
+
+            {/* 체크포인트 — 시나리오 연동 */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:0,marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:12}}>
+{[{label:'현재',idx:V.t9.length-1},{label:'4월 초',idx:13},{label:'5월 말',idx:20},{label:'6/29',idx:25},{label:'~08/31',idx:34},{label:'연말',idx:52}].map((cp,i)=>{
+                const scSales  = S_EC[cp.idx];
+                const prevSales = V.pc[cp.idx];
+                const isYearend = i===5;
+                const scColor  = SCENARIOS.find(s=>s.key===scenario)?.color||C.warn;
+                return (
+                  <div key={i} style={{borderLeft:`2px solid ${i===0?V.color:C.border}`,paddingLeft:10,paddingRight:6}}>
+                    <p style={{margin:'0 0 3px',fontSize:9,fontWeight:700,color:i===0?V.color:C.muted}}>{cp.label}</p>
+                    <p style={{margin:'1px 0 0',fontSize:15,fontWeight:800,color:i===0?V.color:scColor}}>{(scSales/V.ops*100).toFixed(1)}%</p>
+                    <p style={{margin:'1px 0 3px',fontSize:9,color:scColor}}>{억(scSales)}</p>
+                    <p style={{margin:'2px 0 0',fontSize:9,color:C.prev}}>전년동기 {억(prevSales)}</p>
+                    <p style={{margin:'1px 0 0',fontSize:9,color:scSales>=prevSales?C.good:C.bad,fontWeight:600}}>
+                      YoY {scSales>=prevSales?'+':'△'}{억2(Math.abs(scSales-prevSales))}
+                    </p>
+                    {isYearend && (
+                      <div style={{margin:'5px 0 0',borderTop:`1px dashed ${C.border}`,paddingTop:4}}>
+                        <p style={{margin:'0 0 1px',fontSize:9,fontWeight:700,color:C.bad}}>현 재고 추정 {억(V.ops-scSales)}</p>
+                        <p style={{margin:0,fontSize:9,color:C.prev}}>전년기말 {억(V.prev_yearend_stock)}</p>
+                        <p style={{margin:'2px 0 0',fontSize:9,fontWeight:600,color:(V.ops-scSales)<V.prev_yearend_stock?C.good:C.bad}}>
+                          {(V.ops-scSales)<V.prev_yearend_stock?'△':'+'} {(((V.ops-scSales)/V.prev_yearend_stock-1)*100).toFixed(1)}%
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 시즌별 예측 비교 (전체 뷰) */}
+          {skView==='ALL' && (
+            <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
+              <h3 style={{margin:'0 0 14px',fontSize:13}}>시즌별 예측 비교</h3>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+                {[{d:D25,dt_ec:DT25_EC,dt_ops:DT25_OPS,color:C.s25},{d:D24,dt_ec:DT24_EC,dt_ops:DT24_OPS,color:C.s24}].map(({d,dt_ec,dt_ops,color})=>{
+                  const pYS  = d.label==='25S' ? YEAREND_STOCK.PREV_24S : YEAREND_STOCK.PREV_23S;
+                  const calc = d.label==='25S' ? C25 : C24;
+                  const t9   = d.t_weekly.reduce((a,b)=>a+Math.max(b,0),0);
+                  // 시나리오별 이 시즌 S_EC 계산
+                  const dtRate = dt_ops>0 ? dt_ec[52]/dt_ops : 0;
+                  const baseRate = calc.t_est_total/d.t_ops;
+                  const n = d.t_weekly.length;
+                  const scEc = (()=>{
+                    if(scenario==='base')    return calc.e_cumul;
+                    if(scenario==='detail')  return dt_ec;
+                    if(scenario==='gap') {
+      // 전년 소진율 × 10주 페이스 GAP — 세그먼트별 pred 소진율 가중합
+      const gapSegs = V.label==='25S' ? GAP_SEGS_25 : V.label==='24S' ? GAP_SEGS_24
+        : [...GAP_SEGS_25, ...GAP_SEGS_24];
+      const gapSales = gapSegs.reduce((s,r)=>s+r.t_ops*r.pred, 0);
+      const gapOps   = gapSegs.reduce((s,r)=>s+r.t_ops, 0);
+      const gapRate  = gapOps > 0 ? gapSales/gapOps : 0;
+      const scale    = gapRate / (V.dt_ec[52]/V.ops || baseRate);
+      return V.dt_ec.map((v,i)=> i<n ? v : Math.min(tsync + (v-tsync)*scale, V.ops));
+    }
+    if(scenario==='closure') {
+                      const clStart=13, mult=0.651;
+                      const dtAtStart = dt_ec[clStart-1];
+                      return dt_ec.map((v,i)=>{
+                        if(i<n) return v;
+                        if(i<clStart) return dt_ec[i];
+                        return Math.min(dtAtStart+(v-dtAtStart)*mult, d.t_ops);
+                      });
+                    }
+                    const rate = scenario==='optimistic' ? Math.min(dtRate+0.10,1.0)
+                               : Math.max(dtRate-0.10,0);
+                    const sc = rate/(dtRate||baseRate);
+                    return dt_ec.map((v,i)=>i<n?v:Math.min(t9+(v-t9)*sc,d.t_ops));
+                  })();
+                  const scRemain = d.t_ops - scEc[52];
+                  const sc831 = scEc[34];  // ~08/31 누적
+                  const scColor = SCENARIOS.find(s=>s.key===scenario)?.color||C.warn;
+                  return (
+                    <div key={d.label} style={{background:C.card2,borderRadius:8,padding:14,borderTop:`3px solid ${color}`}}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
+                        <span style={{color,fontWeight:800}}>{d.label}</span>
+                        <span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:`${scColor}22`,color:scColor}}>{SCENARIOS.find(s=>s.key===scenario)?.label}</span>
+                      </div>
+                      {[
+                        {label:'운영재고',         v:억(d.t_ops),   sub:`전년 ${억(d.p_ops)}`},
+                        {label:'~08/31 누적 예상', v:`${억(sc831)} (${(sc831/d.t_ops*100).toFixed(1)}%)`, sub:`전년동기 ${억(calc.p_cumul[34])} / YoY ${sc831>=calc.p_cumul[34]?'+':'△'}${억2(Math.abs(sc831-calc.p_cumul[34]))}`, sc:true},
+                        {label:'연말 현 재고 추정',         v:억(scRemain), warn:true, sub:`전년기말 ${억(pYS)} 대비 ${scRemain<pYS?'△':'+'}${((scRemain/pYS-1)*100).toFixed(1)}%`},
+                      ].map(({label,v,warn,sc,sub})=>(
+                        <div key={label} style={{padding:'5px 0',borderBottom:`1px solid ${C.border}`}}>
+                          <div style={{display:'flex',justifyContent:'space-between'}}>
+                            <span style={{fontSize:11,color:C.muted}}>{label}</span>
+                            <span style={{fontSize:11,fontWeight:700,color:warn?C.bad:sc?scColor:color}}>{v}</span>
+                          </div>
+                          {sub&&<p style={{margin:'1px 0 0',fontSize:9,color:C.prev,textAlign:'right'}}>{sub}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 세그먼트별 스케일 테이블 */}
+          {V.dt_segs && (
+            <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
+              <h3 style={{margin:'0 0 4px',fontSize:13}}>품목/성별 세그먼트별 스케일 <SKBadge sk={skView}/></h3>
+              <p style={{margin:'0 0 12px',fontSize:10,color:C.muted}}>
+                OK=실제 비율 / NEW=전년 재고 부족(평균스케일 대체) / ZERO=올해 재고 없음
+              </p>
+              <div style={{overflowX:'auto'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                  <thead>
+                    <tr style={{borderBottom:`2px solid ${C.border}`}}>
+                      {['품목','성별','올해 운영','전년 운영','스케일','구분'].map(h=>(
+                        <th key={h} style={{padding:'4px 8px',color:C.muted,fontWeight:600,textAlign:'right',fontSize:10,
+                          ...(h==='품목'||h==='성별'||h==='구분'?{textAlign:'center'}:{})}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {V.dt_segs.filter(s=>s.t>0||s.p>0).map((s,i)=>{
+                      const flagColor = s.flag==='OK'?C.good:s.flag==='NEW'?C.warn:C.muted;
+                      const scColor   = s.sc>1.5?C.bad:s.sc>0.8?C.text:s.sc===0?C.muted:C.warn;
+                      return (
+                        <tr key={i} style={{borderBottom:`1px solid ${C.border}`,background:i%2?'transparent':C.card2}}>
+                          <td style={{padding:'5px 8px',textAlign:'center',fontWeight:700,color:V.color}}>{s.cat}</td>
+                          <td style={{padding:'5px 8px',textAlign:'center',color:s.gen==='W'?C.s25:s.gen==='M'?C.s24:C.muted}}>{s.gen}</td>
+                          <td style={{padding:'5px 8px',textAlign:'right'}}>{s.t>0?억(s.t):'-'}</td>
+                          <td style={{padding:'5px 8px',textAlign:'right',color:C.muted}}>{s.p>0?억(s.p):'-'}</td>
+                          <td style={{padding:'5px 8px',textAlign:'right',fontWeight:700,color:scColor}}>{s.sc.toFixed(3)}</td>
+                          <td style={{padding:'5px 8px',textAlign:'center'}}>
+                            <span style={{padding:'2px 6px',borderRadius:8,fontSize:9,fontWeight:700,
+                              background:`${flagColor}22`,color:flagColor}}>{s.flag}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 월별 예상 판매 — 시나리오 연동 라인차트 */}
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+              <h3 style={{margin:0,fontSize:13}}>월별 예상 판매</h3>
+              <div style={{display:'flex',gap:12,fontSize:10,color:C.muted}}>
+                <span><span style={{color:C.prev}}>━</span> 전년 실적</span>
+                <span><span style={{color:SCENARIOS.find(x=>x.key===scenario)?.color||C.warn}}>■</span> 올해 실측</span>
+                <span><span style={{color:C.s25}}>╌</span> 25S 예측</span>
+                <span><span style={{color:C.s24}}>╌</span> 24S 예측</span>
+                <span><span style={{color:SCENARIOS.find(x=>x.key===scenario)?.color||C.warn}}>━</span> 전체 예측</span>
+              </div>
+            </div>
+            {(()=>{
+              // 월별 집계 (5구간)
+              const PMAP = {'1-2월':[0,7],'3-4월':[8,15],'5-6월':[16,25],'7-8월':[26,34],'9월↑':[35,52]};
+              const scEc25 = (()=>{
+                const n=D25.t_weekly.length, t9=D25.t_weekly.reduce((a,b)=>a+Math.max(b,0),0);
+                const dtRate=DT25_EC[52]/DT25_OPS, base=C25.t_est_total/D25.t_ops;
+                if(scenario==='base')   return C25.e_cumul;
+                if(scenario==='detail') return DT25_EC;
+                const r=scenario==='optimistic'?Math.min(dtRate+.1,1):scenario==='conservative'?Math.max(dtRate-.1,0):Math.max(dtRate-.1,0);
+                if(scenario==='gap'){
+                  const gSegs=GAP_SEGS_25;
+                  const gRate=gSegs.reduce((s,r)=>s+r.t_ops*r.pred,0)/gSegs.reduce((s,r)=>s+r.t_ops,0);
+                  const sc=gRate/(dtRate||base);
+                  return DT25_EC.map((v,i)=>i<n?v:Math.min(t9+(v-t9)*sc,D25.t_ops));
+                }
+                if(scenario==='closure'){
+                  const clStart=13,mult=0.651,dtAtStart=DT25_EC[clStart-1];
+                  return DT25_EC.map((v,i)=>{
+                    if(i<n) return v;
+                    if(i<clStart) return DT25_EC[i];
+                    return Math.min(dtAtStart+(v-dtAtStart)*mult,D25.t_ops);
+                  });
+                }
+                const sc=r/(dtRate||base);
+                return DT25_EC.map((v,i)=>i<n?v:Math.min(t9+(v-t9)*sc,D25.t_ops));
+              })();
+              const scEc24 = (()=>{
+                const n=D24.t_weekly.length, t9=D24.t_weekly.reduce((a,b)=>a+Math.max(b,0),0);
+                const dtRate=DT24_EC[52]/DT24_OPS, base=C24.t_est_total/D24.t_ops;
+                if(scenario==='base')   return C24.e_cumul;
+                if(scenario==='detail') return DT24_EC;
+                const r=scenario==='optimistic'?Math.min(dtRate+.1,1):scenario==='conservative'?Math.max(dtRate-.1,0):Math.max(dtRate-.1,0);
+                if(scenario==='gap'){
+                  const gSegs=GAP_SEGS_24;
+                  const gRate=gSegs.reduce((s,r)=>s+r.t_ops*r.pred,0)/gSegs.reduce((s,r)=>s+r.t_ops,0);
+                  const sc=gRate/(dtRate||base);
+                  return DT24_EC.map((v,i)=>i<n?v:Math.min(t9+(v-t9)*sc,D24.t_ops));
+                }
+                if(scenario==='closure'){
+                  const clStart=13,mult=0.651,dtAtStart=DT24_EC[clStart-1];
+                  return DT24_EC.map((v,i)=>{
+                    if(i<n) return v;
+                    if(i<clStart) return DT24_EC[i];
+                    return Math.min(dtAtStart+(v-dtAtStart)*mult,D24.t_ops);
+                  });
+                }
+                const sc=r/(dtRate||base);
+                return DT24_EC.map((v,i)=>i<n?v:Math.min(t9+(v-t9)*sc,D24.t_ops));
+              })();
+              const scEcAll = scEc25.map((v,i)=>v+scEc24[i]);
+              // 구간별 판매액 = cumul[end] - cumul[start-1]
+              const seg = (cumul,[s,e])=>(cumul[e]||0)-(s>0?(cumul[s-1]||0):0);
+              const data = Object.entries(PMAP).map(([period,[s,e]])=>({
+                period,
+                prev_all: seg(ALL_PC,[s,e]),
+                prev_25:  seg(C25.p_cumul,[s,e]),
+                prev_24:  seg(C24.p_cumul,[s,e]),
+                act_all:  s < D25.t_weekly.length ? seg(ALL_T9CUM,[s,Math.min(e,D25.t_weekly.length-1)]) : null,
+                sc_all:   seg(scEcAll,[s,e]),
+                sc_25:    seg(scEc25,[s,e]),
+                sc_24:    seg(scEc24,[s,e]),
+              }));
+              const scColor = SCENARIOS.find(x=>x.key===scenario)?.color||C.warn;
+              return (
+                <ResponsiveContainer width="100%" height={220}>
+                  <ComposedChart data={data} margin={{left:10,right:10}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#0a1020"/>
+                    <XAxis dataKey="period" tick={{fill:C.muted,fontSize:10}}/>
+                    <YAxis tickFormatter={v=>(v/1e8).toFixed(0)} tick={{fill:C.muted,fontSize:9}} unit="억"/>
+                    <Tooltip content={<Tip/>}/>
+                    <Bar dataKey="prev_all" name="전년 전체"  fill={C.prev}  radius={[3,3,0,0]} opacity={0.35} barSize={28}/>
+                    <Bar dataKey="act_all"  name="올해 실측"  fill={scColor} radius={[3,3,0,0]} opacity={0.7}  barSize={28}/>
+                    <Line dataKey="sc_all" name={`전체 예측(${SCENARIOS.find(x=>x.key===scenario)?.label})`} stroke={scColor} strokeWidth={2.5} dot={{fill:scColor,r:4}}/>
+                    <Line dataKey="sc_25"  name="25S 예측"  stroke={C.s25}  strokeWidth={2} dot={{fill:C.s25,r:3}}  strokeDasharray="5 2"/>
+                    <Line dataKey="sc_24"  name="24S 예측"  stroke={C.s24}  strokeWidth={2} dot={{fill:C.s24,r:3}}  strokeDasharray="5 2"/>
+                  </ComposedChart>
+                </ResponsiveContainer>
+              );
+            })()}
+          </div>
+
+        </div>
+      )}
+
+      {/* ── 세그먼트 ── */}
+      {mainTab==='segment' && (
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+          <div style={{gridColumn:'1/-1'}}>
+            <PrevInsight items={[
+              {label:'전년 연간 성별 판매율 / 현 재고 기준', desc:`W ${skView==='24S'?(D24.gen.W.p_sales/D24.gen.W.p_ops*100).toFixed(1):skView==='25S'?(D25.gen.W.p_sales/D25.gen.W.p_ops*100).toFixed(1):((D25.gen.W.p_sales+D24.gen.W.p_sales)/(D25.gen.W.p_ops+D24.gen.W.p_ops)*100).toFixed(1)}% / M ${skView==='24S'?(D24.gen.M.p_sales/D24.gen.M.p_ops*100).toFixed(1):skView==='25S'?(D25.gen.M.p_sales/D25.gen.M.p_ops*100).toFixed(1):((D25.gen.M.p_sales+D24.gen.M.p_sales)/(D25.gen.M.p_ops+D24.gen.M.p_ops)*100).toFixed(1)}%`},
+              {label:'특이점', desc: skView==='25S'?'25S 여성 운영재고 비중 77% — 여성 중심 시즌':skView==='24S'?'24S 남성 운영재고 비중 70% — 남성 2년차 재고 부담':' 전체 여성 63% vs 남성 40% — 시즌별 성비 역전'},
+            ]}/>
+          </div>
+
+          {/* 성별 현황 */}
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
+            <h3 style={{margin:'0 0 12px',fontSize:13}}>성별 현 재고 <SKBadge sk={skView}/></h3>
+            {(['W','M','X']).map(g=>{
+              const genRows = skView==='ALL'
+                ? {t_ops:D25.gen[g].t_ops+D24.gen[g].t_ops, t_sales:D25.gen[g].t_sales+D24.gen[g].t_sales,
+                   p_ops:D25.gen[g].p_ops+D24.gen[g].p_ops, p_sales:D25.gen[g].p_sales+D24.gen[g].p_sales}
+                : skView==='25S'
+                  ? {t_ops:D25.gen[g].t_ops, t_sales:D25.gen[g].t_sales, p_ops:D25.gen[g].p_ops, p_sales:D25.gen[g].p_sales}
+                  : {t_ops:D24.gen[g].t_ops, t_sales:D24.gen[g].t_sales, p_ops:D24.gen[g].p_ops, p_sales:D24.gen[g].p_sales};
+              if(genRows.t_ops===0) return null;
+              const tp = genRows.t_sales/genRows.t_ops*100;
+              const pp = genRows.p_ops>0?genRows.p_sales/genRows.p_ops*100:0;
+              // 전년 기말재고 기준 목표: 전년 이 성별 운영비중 × 전체 기말재고 비율
+              const genW = genRows.p_ops>0 ? genRows.p_ops/V.p_ops : 0;
+              const yearendGoal = genW>0 ? (1 - V.prev_yearend_stock*genW/genRows.p_ops)*100 : pp;
+              const gLabel = g==='W'?'여성':g==='M'?'남성':'젠더리스';
+              const gColor = g==='W'?C.W:g==='M'?C.M:C.X;
+              return (
+                <div key={g} style={{marginBottom:14}}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontSize:12,fontWeight:700,color:gColor}}>{gLabel}</span>
+                    <div style={{fontSize:10,color:C.muted,display:'flex',gap:12}}>
+                      <span>운영 {억(genRows.t_ops)}</span>
+                      <span style={{color:V.color}}>현 재고 {억(Math.max(genRows.t_ops-(genRows.t_sales||0),0))}</span>
+                      <span style={{color:C.prev}}>전년 연간 성별 판매율 {pp.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  {/* 잔여재고 바: 전체 중 남은 비율, 목표선=전년기말잔여 */}
+                  <div style={{position:'relative',background:'#0a1020',borderRadius:4,height:8}}>
+                    <div style={{position:'absolute',width:`${Math.min(100-tp,100)}%`,height:'100%',background:gColor,borderRadius:4,opacity:.7}}/>
+                    <div style={{position:'absolute',top:-2,left:`${Math.min(100-yearendGoal,100)}%`,width:2,height:12,background:C.bad,borderRadius:1}}/>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
+                    <span style={{fontSize:9,color:gColor}}>현 재고 {억(Math.max(genRows.t_ops-(genRows.t_sales||0),0))}</span>
+                    <span style={{fontSize:9,color:C.bad}}>전년기말 기준 {억(V.prev_yearend_stock*genW)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 품목 테이블 */}
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
+            <h3 style={{margin:'0 0 12px',fontSize:13}}>품목별 현황 <SKBadge sk={skView}/></h3>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:10}}>
+              <thead>
+                <tr style={{borderBottom:`1px solid ${C.border}`}}>
+                  {['품목','운영','10주판매','현 재고','전년연말잔여','판정'].map(h=>(
+                    <th key={h} style={{padding:'4px 6px',color:C.muted,textAlign:h==='품목'?'left':'right',fontWeight:500}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(()=>{
+                  const catMap = {};
+                  const addCat = (catObj) => {
+                    Object.entries(catObj).forEach(([cat,v])=>{
+                      if(!catMap[cat]) catMap[cat]={t_ops:0,t_s:0,p_ops:0,p_all:0};
+                      catMap[cat].t_ops+=v.t_ops; catMap[cat].t_s+=v.t_s||0;
+                      catMap[cat].p_ops+=v.p_ops; catMap[cat].p_all+=v.p_all||0;
+                    });
+                  };
+                  if(skView==='ALL'||skView==='25S') addCat(D25.cat);
+                  if(skView==='ALL'||skView==='24S') addCat(D24.cat);
+                  return Object.entries(catMap)
+                    .filter(([,v])=>v.t_ops>0)
+                    .sort((a,b)=>b[1].t_ops-a[1].t_ops)
+                    .slice(0,10)
+                    .map(([cat,v],i)=>{
+                      const tRemain = Math.max(v.t_ops - v.t_s, 0);
+                      const pRemain = v.p_ops>0 ? Math.max(v.p_ops - v.p_all, 0) : 0;
+                      // 판정: 올해 잔여가 전년 잔여보다 낮으면 양호
+                      const ratio = pRemain>0 ? tRemain/pRemain : 1;
+                      const color = ratio<0.8?C.good:ratio<1.1?C.warn:C.bad;
+                      const badge = ratio<0.8?'양호':ratio<1.1?'주의':'위험';
+                      return (
+                        <tr key={cat} style={{borderBottom:`1px solid ${C.card2}`,background:i%2?'rgba(255,255,255,.01)':'transparent'}}>
+                          <td style={{padding:'5px 6px',fontWeight:700}}>{cat}</td>
+                          <td style={{padding:'5px 6px',color:C.muted,textAlign:'right'}}>{억(v.t_ops)}</td>
+                          <td style={{padding:'5px 6px',color:V.color,textAlign:'right'}}>{억2(v.t_s)}</td>
+                          <td style={{padding:'5px 6px',textAlign:'right',fontWeight:700,color:color}}>{억(tRemain)}</td>
+                          <td style={{padding:'5px 6px',color:C.prev,textAlign:'right'}}>{pRemain>0?억(pRemain):'-'}</td>
+                          <td style={{padding:'5px 6px',textAlign:'right'}}>
+                            <span style={{padding:'1px 6px',borderRadius:10,fontSize:9,fontWeight:700,background:`${color}22`,color}}>{badge}</span>
+                          </td>
+                        </tr>
+                      );
+                    });
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── 전년 인사이트 ── */}
+      {mainTab==='insight' && (
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
+            <h3 style={{margin:'0 0 12px',fontSize:13}}>전년 월별 판매 패턴</h3>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={periodData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#0a1020"/>
+                <XAxis dataKey="period" tick={{fill:C.muted,fontSize:10}}/>
+                <YAxis tickFormatter={v=>(v/1e8).toFixed(0)} tick={{fill:C.muted,fontSize:9}} unit="억"/>
+                <Tooltip content={<Tip/>}/>
+                <Bar dataKey="prev" name="전년 실적" fill={C.prev} radius={[3,3,0,0]}/>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`}}>
+            <h3 style={{margin:'0 0 12px',fontSize:13}}>전년 주차별 패턴 <SKBadge sk={skView}/></h3>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={weekData.map(d=>({week:d.week,prev:d.prev}))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#0a1020"/>
+                <XAxis dataKey="week" tick={{fill:C.muted,fontSize:8}} interval={4}/>
+                <YAxis tickFormatter={v=>(v/1e8).toFixed(1)} tick={{fill:C.muted,fontSize:9}} unit="억"/>
+                <Tooltip content={<Tip/>}/>
+                <ReferenceLine x="06/29" stroke={C.accent} strokeDasharray="4 3" label={{value:'피크',fill:C.accent,fontSize:9}}/>
+                <Bar dataKey="prev" name="전년 판매" fill={C.prev} radius={[2,2,0,0]}/>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{background:C.card,borderRadius:12,padding:18,border:`1px solid ${C.border}`,gridColumn:'1/-1'}}>
+            <h3 style={{margin:'0 0 14px',fontSize:13}}>주요 인사이트 & 올해 시사점</h3>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+              {[
+                {title:'① 적정 판기', icon:'📅', color:C.accent,
+                 prev:`5월 중순~6월 말 핵심 판기 — 이 구간 전체의 ${((ALL_PC[25]-ALL_PC[18])/ALL_PC[52]*100).toFixed(0)}% 집중 (6/29 단주 ${억2(ALL_PREV[25])})`,
+                 imp:'6/29 단주 급등은 세일 시작 일시 현상 — 중요한 건 5월부터 6월 말까지의 구간 관리',
+                 action:'5월 초부터 포지셔닝 시작, 6월 말까지 꾸준한 재고 노출 유지'},
+                {title:'② 25S WJ 여성 집중', icon:'🧥', color:C.s25,
+                 prev:`25S WJ ${억(D25.cat.WJ.t_ops)} 운영 — 전체의 44%`,
+                 imp:'여성 비중 높아 할인 없이도 소진 가능성. 정상가 유지 전략 유효',
+                 action:'3-4월 정상가 판매 집중, 5월 이후 선별 할인'},
+                {title:'③ 24S 남성 2년차 부담', icon:'⚠️', color:C.s24,
+                 prev:`24S 남성 운영 ${억(D24.gen.M.t_ops)} — 24S 전체의 70%`,
+                 imp:'2년차 목표: 전년 기말재고(23S 41.5억) 이하 소진 — 남성 집중도가 핵심 리스크',
+                 action:'24S 남성 선제 할인, 아울렛 채널 집중'},
+                {title:'④ DH 초반 소진 우수', icon:'❄️', color:C.good,
+                 prev:`전년 DH 동기 10주 ${억2(ALL_PREV[24] - ALL_PREV[16])} — 초반에 집중 판매`,
+                 imp:'DH는 1-2월에 정상가 소진 가능한 몇 안 되는 품목',
+                 action:'DH 정상가 유지 권장, 3월까지 할인 보류'},
+                {title:'⑤ SP·TS 세일 의존', icon:'👕', color:C.warn,
+                 prev:'전년 SP 연간 51%, TS 72% — SP는 전량 세일 구간에서 판매',
+                 imp:'올해 SP 10주 0.7% — 정상 궤도. 세일 구간까지 보유 전략 유효',
+                 action:'SP·TS 조기 할인 역효과. 5월 말 세일까지 보유'},
+                {title:'⑥ 할인율 — 올해 인하 최소화 기조', icon:'💸', color:C.bad,
+                 prev:'전년 25S 실매출/택가 기준 할인율 약 30% / 24S 약 37% — 2년차로 갈수록 심화',
+                 imp:'올해 기조: 추가 인하 최소화. 단, 2년차(24S) 잔여가 많아질 경우 채널 분산이 현실적 대안',
+                 action:'정상가 방어 우선 → 소진 부진 시 아울렛 물량 조정으로 대응'},
+              ].map(({title,icon,color,prev,imp,action})=>(
+                <div key={title} style={{background:C.card2,borderRadius:10,padding:14,borderTop:`3px solid ${color}`}}>
+                  <p style={{margin:'0 0 8px',fontSize:12,fontWeight:700,color}}>{icon} {title}</p>
+                  <p style={{margin:'0 0 5px',fontSize:10,color:C.muted,lineHeight:1.6}}>
+                    <span style={{color:C.prev,fontWeight:600}}>전년: </span>{prev}
+                  </p>
+                  <p style={{margin:'0 0 6px',fontSize:10,color:C.muted,lineHeight:1.6}}>
+                    <span style={{color:V.color,fontWeight:600}}>시사점: </span>{imp}
+                  </p>
+                  <p style={{margin:0,fontSize:10,color:C.text,lineHeight:1.6,background:`${color}11`,borderRadius:6,padding:'6px 8px'}}>
+                    → {action}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <p style={{textAlign:'right',color:C.muted,fontSize:9,marginTop:16}}>
+        실측: 판매기준_올해.xlsx / 매출기준_올해.xlsx (01/04~03/08, 10주) · 예측: 전년 동시즌 패턴 × 운영재고 비율 스케일 · 시즌별 분리 계산 후 합산
+      </p>
+    </div>
+  );
+}
+
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
